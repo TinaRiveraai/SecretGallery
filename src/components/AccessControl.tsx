@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useContract } from '../hooks/useContract';
+import { useViemContract } from '../hooks/useViemContract';
 import { useFHE } from '../hooks/useFHE';
 import type { EncryptedFile } from '../utils';
 
@@ -24,7 +24,7 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
   const [success, setSuccess] = useState<string | null>(null);
 
   const { instance } = useFHE();
-  const { grantFileAccess, isConnected, connectContract } = useContract(instance);
+  const { grantFileAccess, isConnected, connectContract } = useViemContract(instance);
 
   useEffect(() => {
     loadGrantedAccesses();

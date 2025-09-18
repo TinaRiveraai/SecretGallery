@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { FakeIPFS, FileEncryption } from '../utils';
-import { useContract } from '../hooks/useContract';
+import { useViemContract } from '../hooks/useViemContract';
 import { useFHE } from '../hooks/useFHE';
 import type { UploadProgress } from '../utils';
 
@@ -16,7 +16,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
   
   const { instance } = useFHE();
-  const { uploadFile, isConnected, connectContract } = useContract(instance);
+  const { uploadFile, isConnected, connectContract } = useViemContract(instance);
 
   const handleFileSelect = (files: FileList) => {
     if (files.length === 0) return;

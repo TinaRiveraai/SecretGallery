@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FakeIPFS, FileEncryption } from '../utils';
-import { useContract } from '../hooks/useContract';
+import { useViemContract } from '../hooks/useViemContract';
 import { useFHE } from '../hooks/useFHE';
 import type { EncryptedFile, FileMetadata } from '../utils';
 
@@ -17,7 +17,7 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
   const [decryptedPreviews, setDecryptedPreviews] = useState<Map<number, string>>(new Map());
 
   const { instance } = useFHE();
-  const { getUserFiles, getFileData, getFileMetadata, isConnected, connectContract } = useContract(instance);
+  const { getUserFiles, getFileData, getFileMetadata, isConnected, connectContract } = useViemContract(instance);
 
   useEffect(() => {
     loadUserFiles();

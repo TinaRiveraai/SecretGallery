@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 import { FileUpload } from './components/FileUpload';
 import { FileGallery } from './components/FileGallery';
 import { AccessControl } from './components/AccessControl';
@@ -9,31 +11,9 @@ function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'gallery'>('gallery');
   const [selectedFile, setSelectedFile] = useState<EncryptedFile | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [isConnected, setIsConnected] = useState(false);
 
   const { instance, isInitializing, isInitialized, error: fheError, initializeFHE } = useFHE();
-
-  useEffect(() => {
-    const checkConnection = () => {
-      setIsConnected(!!window.ethereum);
-    };
-    
-    checkConnection();
-    window.addEventListener('load', checkConnection);
-    
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', checkConnection);
-      window.ethereum.on('chainChanged', checkConnection);
-    }
-    
-    return () => {
-      window.removeEventListener('load', checkConnection);
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', checkConnection);
-        window.ethereum.removeListener('chainChanged', checkConnection);
-      }
-    };
-  }, []);
+  const { isConnected } = useAccount();
 
   const handleUploadComplete = (fileId: number) => {
     setRefreshTrigger(prev => prev + 1);
@@ -42,19 +22,6 @@ function App() {
 
   const handleFileSelect = (file: EncryptedFile) => {
     setSelectedFile(file);
-  };
-
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setIsConnected(true);
-      } catch (error) {
-        console.error('Failed to connect wallet:', error);
-      }
-    } else {
-      alert('Please install MetaMask or another Web3 wallet');
-    }
   };
 
   if (isInitializing) {
@@ -169,22 +136,7 @@ function App() {
         <p>Your private encrypted file storage on the blockchain</p>
         
         <div style={{ marginTop: '20px' }}>
-          {!isConnected ? (
-            <button className="button" onClick={connectWallet}>
-              🔗 Connect Wallet
-            </button>
-          ) : (
-            <div style={{ 
-              display: 'inline-block',
-              background: '#28a745',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '14px',
-              color: 'white'
-            }}>
-              ✅ Wallet Connected
-            </div>
-          )}
+          <ConnectButton showBalance={false} />
         </div>
       </header>
 

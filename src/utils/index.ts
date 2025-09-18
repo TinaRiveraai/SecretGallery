@@ -39,3 +39,4 @@ export interface FHEInstance {
 export { FakeIPFS } from './fakeIpfs';
 export { FileEncryption } from './encryption';
 export { ContractService } from './contract';
+export { ViemContractService } from './viemContract';
