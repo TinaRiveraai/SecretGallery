@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { SECRET_GALLERY_ABI } from './SecretGalleryABI';
 import type { FHEInstance } from './index';
 
-// 合约地址（已部署在Sepolia测试网）
+// Contract address (deployed on Sepolia testnet)
 const CONTRACT_ADDRESS = '0xd72b2ED6708BB2AA5A31B92Ce5a3679E5834B951' as const;
 
 export class EthersContractService {
@@ -16,18 +16,18 @@ export class EthersContractService {
     this.fheInstance = fheInstance;
   }
 
-  // 连接钱包
+  // Connect wallet
   async connect(): Promise<void> {
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
-        // 请求用户连接钱包
+        // Request user to connect wallet
         await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-        // 创建provider和signer
+        // Create provider and signer
         this.provider = new ethers.BrowserProvider(window.ethereum);
         this.signer = await this.provider.getSigner();
 
-        // 验证网络
+        // Verify network
         const network = await this.provider.getNetwork();
         console.log('Connected to network:', network.name, 'chainId:', network.chainId);
 
@@ -35,10 +35,10 @@ export class EthersContractService {
           throw new Error('Please switch to Sepolia testnet. Current network: ' + network.name);
         }
 
-        // 创建合约实例
+        // Create contract instance
         this.contract = new ethers.Contract(CONTRACT_ADDRESS, SECRET_GALLERY_ABI, this.signer);
 
-        // 验证账户连接
+        // Verify account connection
         const address = await this.signer.getAddress();
         console.log('Connected account:', address);
       } else {
@@ -54,12 +54,12 @@ export class EthersContractService {
     }
   }
 
-  // 设置FHE实例
+  // Set FHE instance
   setFHEInstance(instance: FHEInstance): void {
     this.fheInstance = instance;
   }
 
-  // 上传文件到合约
+  // Upload file to contract
   async uploadFile(ipfsHashNumber: bigint, aesPassword: string): Promise<number> {
     if (!this.connected || !this.fheInstance || !this.contract || !this.signer) {
       throw new Error('Contract service not properly initialized');
@@ -68,7 +68,7 @@ export class EthersContractService {
     try {
       console.log('Preparing FHE encrypted input...');
 
-      // 获取用户地址
+      // Get user address
       const userAddress = await this.signer.getAddress();
 
       // 创建加密输入

@@ -115,7 +115,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, simpleAbi, provider);
 
-      const userAddress = walletAddress || "0x609a6Fa3B64e26184C9570F4b47D1DD80783465B";
+      const userAddress = walletAddress;
       console.log('Reading files for user:', userAddress);
 
       const currentFileId = await contract.getCurrentFileId();
