@@ -66,7 +66,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
       setProgress({ stage: 'uploading', progress: 0 });
 
       // 上传到伪IPFS
-      const ipfsHash = await FakeIPFS.upload(encryptedData);
+      const ipfsHash = await FakeIPFS.uploadToIPFS(encryptedData);
       console.log('Uploaded to Fake IPFS:', ipfsHash);
 
       setProgress({ stage: 'uploading', progress: 70 });

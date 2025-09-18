@@ -7,9 +7,12 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["es2022"], // get error cause (ErrorOptions)
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "lib": ["es2022", "dom", "dom.iterable"], // get error cause (ErrorOptions)
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0",
     "noImplicitAny": true,
     "removeComments": true,
     "resolveJsonModule": true,

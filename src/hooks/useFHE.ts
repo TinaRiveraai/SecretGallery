@@ -2,6 +2,17 @@ import { useState } from 'react';
 import { initSDK, createInstance, SepoliaConfig } from '@zama-fhe/relayer-sdk/bundle';
 import type { FHEInstance } from '../utils';
 
+// 添加window类型声明
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, handler: Function) => void;
+      removeListener: (event: string, handler: Function) => void;
+    };
+  }
+}
+
 export function useFHE() {
   const [instance, setInstance] = useState<FHEInstance | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -13,34 +24,20 @@ export function useFHE() {
       setIsInitializing(true);
       setError(null);
 
-      console.log('Initializing FHE system (simulated)...');
+      console.log('Loading FHE WASM...');
+      await initSDK();
 
-      // 模拟加载过程
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // 创建模拟的FHE实例
-      const mockFheInstance: FHEInstance = {
-        createEncryptedInput: (contractAddress: string, userAddress: string) => ({
-          add256: (value: bigint) => console.log('Mock: Adding 256-bit value:', value.toString()),
-          addAddress: (address: string) => console.log('Mock: Adding address:', address),
-          encrypt: async () => ({
-            handles: ['mock_handle_1', 'mock_handle_2'],
-            inputProof: 'mock_proof'
-          })
-        }),
-        generateKeypair: () => ({
-          publicKey: 'mock_public_key',
-          privateKey: 'mock_private_key'
-        }),
-        userDecrypt: async (...args: any[]) => {
-          console.log('Mock: User decrypt called with args:', args.length);
-          return { 'mock_handle': 'mock_decrypted_value' };
-        }
+      console.log('Creating FHE instance...');
+      const config = {
+        ...SepoliaConfig,
+        network: (typeof window !== 'undefined' && window.ethereum) || 'https://sepolia.infura.io/v3/YOUR_INFURA_KEY'
       };
 
-      setInstance(mockFheInstance);
+      const fheInstance = await createInstance(config);
+
+      setInstance(fheInstance as FHEInstance);
       setIsInitialized(true);
-      console.log('FHE initialized successfully (simulated)');
+      console.log('FHE initialized successfully');
 
     } catch (err) {
       console.error('Failed to initialize FHE:', err);

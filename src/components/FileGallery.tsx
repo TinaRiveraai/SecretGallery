@@ -101,7 +101,7 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
       }
 
       // 从伪IPFS下载加密数据
-      const encryptedData = await FakeIPFS.download(ipfsHash);
+      const encryptedData = await FakeIPFS.downloadFromIPFS(ipfsHash);
 
       // 解密文件数据
       const decryptedBase64 = FileEncryption.decryptFile(encryptedData, aesPassword);
@@ -138,7 +138,7 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
       }
 
       // 从伪IPFS下载加密数据
-      const encryptedData = await FakeIPFS.download(ipfsHash);
+      const encryptedData = await FakeIPFS.downloadFromIPFS(ipfsHash);
 
       // 解密文件数据
       const decryptedBase64 = FileEncryption.decryptFile(encryptedData, aesPassword);

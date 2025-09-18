@@ -14,6 +14,5 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@zama-fhe/relayer-sdk'],
-    include: ['crypto-js'],
   },
 })

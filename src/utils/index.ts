@@ -36,7 +36,7 @@ export interface FHEInstance {
 }
 
 // 导出工具类
-export { FakeIPFS } from './fakeIpfs';
-export { FileEncryption } from './encryption';
-export { ContractService } from './contract';
+export { FakeIPFS } from './ipfs';
+export { CryptoUtils } from './crypto';
+export { CryptoUtils as FileEncryption } from './crypto'; // 兼容性别名
 export { ViemContractService } from './viemContract';
