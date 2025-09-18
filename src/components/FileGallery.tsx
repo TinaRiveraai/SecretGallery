@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { CryptoUtils } from '../utils/crypto';
-import { IPFSUtils } from '../utils/ipfs';
-import { useSecretGallery } from '../hooks/useSecretGallery';
+import { FakeIPFS, FileEncryption } from '../utils';
+import { useContract } from '../hooks/useContract';
+import { useFHE } from '../hooks/useFHE';
 import type { EncryptedFile, FileMetadata } from '../utils';
 
 interface FileGalleryProps {
@@ -16,22 +16,63 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
   const [decryptingFiles, setDecryptingFiles] = useState<Set<number>>(new Set());
   const [decryptedPreviews, setDecryptedPreviews] = useState<Map<number, string>>(new Map());
 
-  const { getUserFiles } = useSecretGallery();
+  const { instance } = useFHE();
+  const { getUserFiles, getFileData, getFileMetadata, isConnected, connectContract } = useContract(instance);
 
   useEffect(() => {
     loadUserFiles();
   }, [refreshTrigger]);
 
   const loadUserFiles = async () => {
+    if (!isConnected) {
+      try {
+        await connectContract();
+      } catch (err) {
+        setError('Failed to connect to contract');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // TODO: Load real user files from the contract
-      const userFiles = await getUserFiles();
+      // 获取用户的文件ID列表
+      const fileIds = await getUserFiles();
+      console.log('User file IDs:', fileIds);
 
-      // TODO: Convert file IDs to EncryptedFile objects by fetching metadata
-      setFiles([]);
+      // 转换文件ID为EncryptedFile对象
+      const filePromises = fileIds.map(async (fileId: number) => {
+        try {
+          // 获取文件元数据
+          const metadata = await getFileMetadata(fileId);
+
+          // 从本地存储获取缓存的元数据（如果有）
+          const cachedMetaStr = localStorage.getItem(`file_meta_${fileId}`);
+          const cachedMeta = cachedMetaStr ? JSON.parse(cachedMetaStr) : null;
+
+          const encryptedFile: EncryptedFile = {
+            id: fileId,
+            encryptedData: cachedMeta?.encryptedData || '',
+            ipfsHash: cachedMeta?.ipfsHash || '',
+            aesPassword: cachedMeta?.aesPassword || '',
+            owner: metadata.owner,
+            timestamp: metadata.timestamp * 1000, // 转换为毫秒
+            filename: cachedMeta?.filename || `File ${fileId}`,
+            fileType: cachedMeta?.fileType || 'application/octet-stream',
+            fileSize: cachedMeta?.fileSize || 0,
+          };
+
+          return encryptedFile;
+        } catch (err) {
+          console.error(`Failed to load file ${fileId}:`, err);
+          return null;
+        }
+      });
+
+      const loadedFiles = (await Promise.all(filePromises)).filter(Boolean) as EncryptedFile[];
+      setFiles(loadedFiles);
     } catch (err) {
       console.error('Failed to load files:', err);
       setError('Failed to load files');
@@ -46,15 +87,32 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
     setDecryptingFiles(prev => new Set(prev).add(file.id));
 
     try {
-      // TODO: Implement real file decryption and preview
-      // 1. Get file data from contract using getFileData()
-      // 2. Download encrypted data from IPFS using the hash
-      // 3. Decrypt data using the AES password
-      // 4. Create blob URL for preview
+      let ipfsHash, aesPassword;
 
-      throw new Error('File preview not implemented yet');
+      // 如果本地有缓存，直接使用
+      if (file.ipfsHash && file.aesPassword) {
+        ipfsHash = file.ipfsHash;
+        aesPassword = file.aesPassword;
+      } else {
+        // 从合约获取加密的文件数据
+        const fileData = await getFileData(file.id);
+        ipfsHash = FileEncryption.numberToHash(BigInt(fileData.ipfsHash));
+        aesPassword = fileData.aesPassword;
+      }
+
+      // 从伪IPFS下载加密数据
+      const encryptedData = await FakeIPFS.download(ipfsHash);
+
+      // 解密文件数据
+      const decryptedBase64 = FileEncryption.decryptFile(encryptedData, aesPassword);
+
+      // 为图片创建预览URL
+      if (file.fileType.startsWith('image/')) {
+        setDecryptedPreviews(prev => new Map(prev).set(file.id, decryptedBase64));
+      }
     } catch (err) {
       console.error('Failed to decrypt file:', err);
+      alert('Failed to decrypt file: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setDecryptingFiles(prev => {
         const next = new Set(prev);
@@ -66,13 +124,38 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
 
   const downloadFile = async (file: EncryptedFile) => {
     try {
-      // TODO: Implement real file download
-      // 1. Get file data from contract using getFileData()
-      // 2. Download encrypted data from IPFS using the hash
-      // 3. Decrypt data using the AES password
-      // 4. Create and trigger download
+      let ipfsHash, aesPassword;
 
-      throw new Error('File download not implemented yet');
+      // 如果本地有缓存，直接使用
+      if (file.ipfsHash && file.aesPassword) {
+        ipfsHash = file.ipfsHash;
+        aesPassword = file.aesPassword;
+      } else {
+        // 从合约获取加密的文件数据
+        const fileData = await getFileData(file.id);
+        ipfsHash = FileEncryption.numberToHash(BigInt(fileData.ipfsHash));
+        aesPassword = fileData.aesPassword;
+      }
+
+      // 从伪IPFS下载加密数据
+      const encryptedData = await FakeIPFS.download(ipfsHash);
+
+      // 解密文件数据
+      const decryptedBase64 = FileEncryption.decryptFile(encryptedData, aesPassword);
+
+      // 创建Blob并触发下载
+      const blob = FileEncryption.base64ToBlob(decryptedBase64, file.fileType);
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log('File downloaded successfully');
     } catch (err) {
       console.error('Failed to download file:', err);
       alert('Failed to download file: ' + (err instanceof Error ? err.message : 'Unknown error'));

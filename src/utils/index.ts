@@ -1,3 +1,4 @@
+// 数据类型定义
 export interface EncryptedFile {
   id: number;
   encryptedData: string;
@@ -33,3 +34,8 @@ export interface FHEInstance {
   generateKeypair: () => { publicKey: string; privateKey: string };
   userDecrypt: (...args: any[]) => Promise<any>;
 }
+
+// 导出工具类
+export { FakeIPFS } from './fakeIpfs';
+export { FileEncryption } from './encryption';
+export { ContractService } from './contract';

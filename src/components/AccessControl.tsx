@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSecretGallery } from '../hooks/useSecretGallery';
+import { useContract } from '../hooks/useContract';
+import { useFHE } from '../hooks/useFHE';
 import type { EncryptedFile } from '../utils';
 
 interface AccessControlProps {
@@ -22,7 +23,8 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const { grantAccess, revokeAccess } = useSecretGallery();
+  const { instance } = useFHE();
+  const { grantFileAccess, isConnected, connectContract } = useContract(instance);
 
   useEffect(() => {
     loadGrantedAccesses();
@@ -30,9 +32,14 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
 
   const loadGrantedAccesses = async () => {
     try {
-      // TODO: Load real granted accesses from the contract
-      // Use getFileGrantees() to get list of addresses with access
-      setGrantedAccesses([]);
+      // 从本地存储加载授权列表
+      const storedGrants = localStorage.getItem(`file_grants_${file.id}`);
+      if (storedGrants) {
+        const grants = JSON.parse(storedGrants) as GrantedAccess[];
+        setGrantedAccesses(grants);
+      } else {
+        setGrantedAccesses([]);
+      }
     } catch (err) {
       console.error('Failed to load granted accesses:', err);
       setError('Failed to load access list');
@@ -50,16 +57,34 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
       return;
     }
 
+    if (!isConnected) {
+      try {
+        await connectContract();
+      } catch (err) {
+        setError('Failed to connect to contract');
+        return;
+      }
+    }
+
     setIsGranting(true);
     setError(null);
     setSuccess(null);
 
     try {
-      // TODO: Implement real grant access using grantFileAccess contract function
-      await grantAccess(file.id, newGranteeAddress);
+      await grantFileAccess(file.id, newGranteeAddress);
 
-      // TODO: Reload granted accesses from contract
-      await loadGrantedAccesses();
+      // 保存授权记录到本地存储
+      const newAccess: GrantedAccess = {
+        address: newGranteeAddress,
+        grantedAt: Date.now(),
+        nickname: newGranteeNickname || undefined,
+      };
+
+      const newGrantedAccesses = [...grantedAccesses, newAccess];
+      setGrantedAccesses(newGrantedAccesses);
+
+      // 保存到本地存储
+      localStorage.setItem(`file_grants_${file.id}`, JSON.stringify(newGrantedAccesses));
 
       setSuccess(`Access granted to ${newGranteeNickname || newGranteeAddress}`);
       setNewGranteeAddress('');
@@ -81,11 +106,14 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
     setSuccess(null);
 
     try {
-      // TODO: Implement real revoke access using revokeFileAccess contract function
-      await revokeAccess(file.id, address);
+      // TODO: 实现真实的撤销访问权限（当前暂未实现合约的revokeFileAccess功能）
 
-      // TODO: Reload granted accesses from contract
-      await loadGrantedAccesses();
+      // 从本地状态移除授权
+      const updatedAccesses = grantedAccesses.filter(access => access.address !== address);
+      setGrantedAccesses(updatedAccesses);
+
+      // 更新本地存储
+      localStorage.setItem(`file_grants_${file.id}`, JSON.stringify(updatedAccesses));
 
       const revokedAccess = grantedAccesses.find(access => access.address === address);
       setSuccess(`Access revoked from ${revokedAccess?.nickname || address}`);

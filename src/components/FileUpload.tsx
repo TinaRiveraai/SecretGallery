@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { CryptoUtils } from '../utils/crypto';
-import { IPFSUtils } from '../utils/ipfs';
-import { useSecretGallery } from '../hooks/useSecretGallery';
+import { FakeIPFS, FileEncryption } from '../utils';
+import { useContract } from '../hooks/useContract';
+import { useFHE } from '../hooks/useFHE';
 import type { UploadProgress } from '../utils';
 
 interface FileUploadProps {
@@ -15,7 +15,8 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const { uploadFile } = useSecretGallery();
+  const { instance } = useFHE();
+  const { uploadFile, isConnected, connectContract } = useContract(instance);
 
   const handleFileSelect = (files: FileList) => {
     if (files.length === 0) return;
@@ -36,34 +37,53 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
   };
 
   const processFile = async (file: File) => {
+    if (!isConnected) {
+      try {
+        await connectContract();
+      } catch (err) {
+        setError('Failed to connect to contract. Please try again.');
+        return;
+      }
+    }
+
     try {
       setUploading(true);
       setError(null);
-      
-      setProgress({ stage: 'encrypting', progress: 0 });
-      
-      const aesPassword = CryptoUtils.generateAESPassword();
+
+      setProgress({ stage: 'encrypting', progress: 10 });
+
+      // 生成AES密码（EVM地址格式）
+      const aesPassword = FileEncryption.generatePassword();
       console.log('Generated AES password:', aesPassword);
-      
+
       setProgress({ stage: 'encrypting', progress: 30 });
-      
-      const encryptedData = await CryptoUtils.encryptFile(file, aesPassword);
+
+      // 将文件转换为Base64并加密
+      const fileBase64 = await FileEncryption.fileToBase64(file);
+      const encryptedData = FileEncryption.encryptFile(fileBase64, aesPassword);
       console.log('File encrypted, size:', encryptedData.length);
-      
+
       setProgress({ stage: 'uploading', progress: 0 });
-      
-      const ipfsHash = await IPFSUtils.uploadToIPFS(encryptedData);
-      console.log('Uploaded to IPFS:', ipfsHash);
-      
+
+      // 上传到伪IPFS
+      const ipfsHash = await FakeIPFS.upload(encryptedData);
+      console.log('Uploaded to Fake IPFS:', ipfsHash);
+
       setProgress({ stage: 'uploading', progress: 70 });
-      
+
       setProgress({ stage: 'storing', progress: 0 });
-      
-      const fileId = await uploadFile(ipfsHash, aesPassword);
+
+      // 转换IPFS哈希为数字
+      const ipfsHashNumber = FileEncryption.hashToNumber(ipfsHash);
+      console.log('IPFS hash as number:', ipfsHashNumber.toString());
+
+      // 上传到合约
+      const fileId = await uploadFile(ipfsHashNumber, aesPassword);
       console.log('Stored in contract, fileId:', fileId);
-      
+
       setProgress({ stage: 'storing', progress: 90 });
-      
+
+      // 保存文件元数据到本地存储
       const fileMetadata = {
         filename: file.name,
         fileType: file.type,
@@ -73,18 +93,18 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         aesPassword,
         uploadTime: Date.now(),
       };
-      
+
       localStorage.setItem(`file_meta_${fileId}`, JSON.stringify(fileMetadata));
-      
+
       setProgress({ stage: 'completed', progress: 100 });
-      
+
       setTimeout(() => {
         setProgress(null);
         if (onUploadComplete) {
           onUploadComplete(fileId);
         }
       }, 1000);
-      
+
     } catch (err) {
       console.error('File upload failed:', err);
       setError(err instanceof Error ? err.message : 'Upload failed');

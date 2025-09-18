@@ -11,7 +11,7 @@ function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
 
-  const { instance, isInitializing, error: fheError } = useFHE();
+  const { instance, isInitializing, isInitialized, error: fheError, initializeFHE } = useFHE();
 
   useEffect(() => {
     const checkConnection = () => {
@@ -61,9 +61,9 @@ function App() {
     return (
       <div className="container">
         <div className="loading">
-          <div>🔐 Initializing Secret Gallery...</div>
+          <div>🔐 Initializing FHE System...</div>
           <div style={{ fontSize: '14px', color: '#999', marginTop: '10px' }}>
-            Loading FHE encryption system
+            Loading FHE encryption system, please wait...
           </div>
         </div>
       </div>
@@ -74,17 +74,89 @@ function App() {
     return (
       <div className="container">
         <div className="error">
-          <div>❌ Failed to initialize Secret Gallery</div>
+          <div>❌ Failed to initialize FHE System</div>
           <div style={{ fontSize: '14px', marginTop: '10px' }}>
             Error: {fheError}
           </div>
-          <button 
+          <button
             className="button"
-            onClick={() => window.location.reload()}
+            onClick={initializeFHE}
             style={{ marginTop: '15px' }}
           >
             🔄 Retry
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isInitialized) {
+    return (
+      <div className="container">
+        <header className="header">
+          <h1>🔐 Secret Gallery</h1>
+          <p>Your private encrypted file storage on the blockchain</p>
+        </header>
+
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          background: '#1a1a1a',
+          borderRadius: '10px',
+          border: '1px solid #333'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+          <h3 style={{ marginBottom: '15px', color: '#fff' }}>Initialize FHE System</h3>
+          <p style={{ marginBottom: '25px', color: '#ccc', lineHeight: '1.5' }}>
+            Secret Gallery uses Fully Homomorphic Encryption (FHE) to protect your files.<br/>
+            Click the button below to initialize the encryption system.
+          </p>
+          <button
+            className="button"
+            onClick={initializeFHE}
+            style={{ fontSize: '16px', padding: '12px 24px' }}
+          >
+            🚀 Initialize FHE System
+          </button>
+        </div>
+
+        <div style={{
+          marginTop: '40px',
+          padding: '20px',
+          background: '#0f0f0f',
+          borderRadius: '8px',
+          border: '1px solid #222'
+        }}>
+          <h4 style={{ color: '#888', marginBottom: '15px', textAlign: 'center' }}>What is FHE?</h4>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            fontSize: '14px',
+            color: '#ccc'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔐</div>
+              <strong>Private by Design</strong>
+              <p style={{ fontSize: '12px', marginTop: '5px' }}>
+                Compute on encrypted data without revealing it
+              </p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>⛓️</div>
+              <strong>On-Chain Security</strong>
+              <p style={{ fontSize: '12px', marginTop: '5px' }}>
+                Smart contracts work with encrypted values
+              </p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔑</div>
+              <strong>Access Control</strong>
+              <p style={{ fontSize: '12px', marginTop: '5px' }}>
+                Grant selective access to encrypted data
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
