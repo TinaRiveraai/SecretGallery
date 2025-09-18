@@ -29,12 +29,8 @@ export function useSecretGallery(): UseSecretGalleryReturn {
     setError(null);
 
     try {
-      // 模拟上传过程
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Mock upload to contract:', { ipfsHash, aesPassword });
-      
-      return Math.floor(Math.random() * 1000) + 1;
+      // TODO: Implement real contract interaction using viem and FHE
+      throw new Error('Contract upload not implemented yet');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upload failed';
       setError(errorMessage);
@@ -45,23 +41,19 @@ export function useSecretGallery(): UseSecretGalleryReturn {
   };
 
   const grantAccess = async (fileId: number, granteeAddress: string): Promise<void> => {
-    console.log('Mock grant access:', { fileId, granteeAddress });
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    throw new Error('Grant access not implemented yet');
   };
 
   const revokeAccess = async (fileId: number, granteeAddress: string): Promise<void> => {
-    console.log('Mock revoke access:', { fileId, granteeAddress });
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    throw new Error('Revoke access not implemented yet');
   };
 
   const getFileData = async (fileId: number): Promise<{ ipfsHash: string; aesPassword: string }> => {
-    console.log('Mock get file data:', fileId);
-    return { ipfsHash: 'mock_hash', aesPassword: 'mock_password' };
+    throw new Error('Get file data not implemented yet');
   };
 
   const getUserFiles = async (): Promise<number[]> => {
-    console.log('Mock get user files');
-    return [1, 2, 3, 4, 5];
+    throw new Error('Get user files not implemented yet');
   };
 
   return {

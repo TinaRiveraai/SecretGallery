@@ -28,24 +28,14 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
     loadGrantedAccesses();
   }, [file.id]);
 
-  const loadGrantedAccesses = () => {
-    const savedAccesses = localStorage.getItem(`file_access_${file.id}`);
-    if (savedAccesses) {
-      const accesses: GrantedAccess[] = JSON.parse(savedAccesses);
-      setGrantedAccesses(accesses);
-    } else {
-      setGrantedAccesses([
-        {
-          address: '0x742d35Cc6634C0532925a3b8D400e6050c6D516e',
-          grantedAt: Date.now() - 86400000 * 2,
-          nickname: 'Alice (Friend)',
-        },
-        {
-          address: '0x8ba1f109551bD432803012645Hac136c22C516e',
-          grantedAt: Date.now() - 86400000 * 5,
-          nickname: 'Bob (Colleague)',
-        }
-      ]);
+  const loadGrantedAccesses = async () => {
+    try {
+      // TODO: Load real granted accesses from the contract
+      // Use getFileGrantees() to get list of addresses with access
+      setGrantedAccesses([]);
+    } catch (err) {
+      console.error('Failed to load granted accesses:', err);
+      setError('Failed to load access list');
     }
   };
 
@@ -65,26 +55,18 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
     setSuccess(null);
 
     try {
-      console.log(`Granting access to ${newGranteeAddress} for file ${file.id}`);
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const newAccess: GrantedAccess = {
-        address: newGranteeAddress,
-        grantedAt: Date.now(),
-        nickname: newGranteeNickname || undefined,
-      };
+      // TODO: Implement real grant access using grantFileAccess contract function
+      await grantAccess(file.id, newGranteeAddress);
 
-      const updatedAccesses = [...grantedAccesses, newAccess];
-      setGrantedAccesses(updatedAccesses);
-      localStorage.setItem(`file_access_${file.id}`, JSON.stringify(updatedAccesses));
+      // TODO: Reload granted accesses from contract
+      await loadGrantedAccesses();
 
       setSuccess(`Access granted to ${newGranteeNickname || newGranteeAddress}`);
       setNewGranteeAddress('');
       setNewGranteeNickname('');
-      
+
       setTimeout(() => setSuccess(null), 3000);
-      
+
     } catch (err) {
       console.error('Failed to grant access:', err);
       setError(err instanceof Error ? err.message : 'Failed to grant access');
@@ -99,19 +81,17 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
     setSuccess(null);
 
     try {
-      console.log(`Revoking access from ${address} for file ${file.id}`);
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const updatedAccesses = grantedAccesses.filter(access => access.address !== address);
-      setGrantedAccesses(updatedAccesses);
-      localStorage.setItem(`file_access_${file.id}`, JSON.stringify(updatedAccesses));
+      // TODO: Implement real revoke access using revokeFileAccess contract function
+      await revokeAccess(file.id, address);
+
+      // TODO: Reload granted accesses from contract
+      await loadGrantedAccesses();
 
       const revokedAccess = grantedAccesses.find(access => access.address === address);
       setSuccess(`Access revoked from ${revokedAccess?.nickname || address}`);
-      
+
       setTimeout(() => setSuccess(null), 3000);
-      
+
     } catch (err) {
       console.error('Failed to revoke access:', err);
       setError(err instanceof Error ? err.message : 'Failed to revoke access');

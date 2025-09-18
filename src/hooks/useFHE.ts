@@ -14,31 +14,9 @@ export function useFHE() {
         setIsInitializing(true);
         setError(null);
 
-        console.log('Initializing mock FHE instance...');
-        
-        // 模拟初始化过程
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const mockInstance: FHEInstance = {
-          createEncryptedInput: (contractAddress: string, userAddress: string) => ({
-            add256: (value: any) => console.log('Mock add256:', value),
-            addAddress: (value: any) => console.log('Mock addAddress:', value),
-            encrypt: async () => ({
-              handles: ['0x123', '0x456'],
-              inputProof: '0xproof123'
-            })
-          }),
-          generateKeypair: () => ({
-            publicKey: 'mock_public_key',
-            privateKey: 'mock_private_key'
-          }),
-          userDecrypt: async () => ({ result: 'mock_decrypted_data' })
-        };
-        
-        if (mounted) {
-          setInstance(mockInstance);
-          console.log('Mock FHE instance initialized successfully');
-        }
+        // TODO: Implement real FHE initialization using @zama-fhe/relayer-sdk
+        throw new Error('FHE initialization not implemented yet');
+
       } catch (err) {
         console.error('Failed to initialize FHE:', err);
         if (mounted) {

@@ -26,67 +26,12 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
     try {
       setLoading(true);
       setError(null);
-      
-      const mockFiles: EncryptedFile[] = [];
-      
-      for (let i = 1; i <= 5; i++) {
-        const savedMetadata = localStorage.getItem(`file_meta_${i}`);
-        if (savedMetadata) {
-          const metadata = JSON.parse(savedMetadata);
-          mockFiles.push({
-            id: i,
-            encryptedData: metadata.encryptedData,
-            ipfsHash: metadata.ipfsHash,
-            aesPassword: metadata.aesPassword,
-            owner: '0x' + '0'.repeat(40),
-            timestamp: metadata.uploadTime || Date.now() - Math.random() * 86400000 * 7,
-            filename: metadata.filename,
-            fileType: metadata.fileType,
-            fileSize: metadata.fileSize,
-          });
-        }
-      }
-      
-      if (mockFiles.length === 0) {
-        const sampleFiles: EncryptedFile[] = [
-          {
-            id: 1,
-            encryptedData: 'encrypted_sample_1',
-            ipfsHash: 'QmSampleHash1234567890123456789012345678901234',
-            aesPassword: '0x1234567890123456789012345678901234567890',
-            owner: '0x' + '0'.repeat(40),
-            timestamp: Date.now() - 86400000 * 2,
-            filename: 'vacation.jpg',
-            fileType: 'image/jpeg',
-            fileSize: 1024567,
-          },
-          {
-            id: 2,
-            encryptedData: 'encrypted_sample_2', 
-            ipfsHash: 'QmSampleHash5678901234567890123456789012345678',
-            aesPassword: '0x5678901234567890123456789012345678901234',
-            owner: '0x' + '0'.repeat(40),
-            timestamp: Date.now() - 86400000 * 5,
-            filename: 'document.pdf',
-            fileType: 'application/pdf',
-            fileSize: 2048000,
-          },
-          {
-            id: 3,
-            encryptedData: 'encrypted_sample_3',
-            ipfsHash: 'QmSampleHash9012345678901234567890123456789012', 
-            aesPassword: '0x9012345678901234567890123456789012345678',
-            owner: '0x' + '0'.repeat(40),
-            timestamp: Date.now() - 86400000 * 1,
-            filename: 'notes.txt',
-            fileType: 'text/plain',
-            fileSize: 5120,
-          }
-        ];
-        mockFiles.push(...sampleFiles);
-      }
 
-      setFiles(mockFiles);
+      // TODO: Load real user files from the contract
+      const userFiles = await getUserFiles();
+
+      // TODO: Convert file IDs to EncryptedFile objects by fetching metadata
+      setFiles([]);
     } catch (err) {
       console.error('Failed to load files:', err);
       setError('Failed to load files');
@@ -97,52 +42,17 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
 
   const decryptAndPreview = async (file: EncryptedFile) => {
     if (decryptingFiles.has(file.id)) return;
-    
+
     setDecryptingFiles(prev => new Set(prev).add(file.id));
-    
+
     try {
-      let encryptedData = file.encryptedData;
-      
-      if (encryptedData === 'encrypted_sample_1' || encryptedData === 'encrypted_sample_2' || encryptedData === 'encrypted_sample_3') {
-        encryptedData = 'U2FsdGVkX1+mock-encrypted-data-for-demo-' + file.id;
-      }
-      
-      if (file.fileType.startsWith('image/')) {
-        const sampleImageData = await fetch('/api/placeholder/300/200').then(r => r.arrayBuffer()).catch(() => {
-          return new ArrayBuffer(0);
-        });
-        
-        if (sampleImageData.byteLength > 0) {
-          const blobUrl = CryptoUtils.createBlobURL(sampleImageData, file.fileType);
-          setDecryptedPreviews(prev => new Map(prev).set(file.id, blobUrl));
-        } else {
-          const canvas = document.createElement('canvas');
-          canvas.width = 300;
-          canvas.height = 200;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            const gradient = ctx.createLinearGradient(0, 0, 300, 200);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(1, '#764ba2');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 300, 200);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('🖼️', 150, 90);
-            ctx.fillText(file.filename, 150, 130);
-          }
-          
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              setDecryptedPreviews(prev => new Map(prev).set(file.id, url));
-            }
-          });
-        }
-      }
-      
+      // TODO: Implement real file decryption and preview
+      // 1. Get file data from contract using getFileData()
+      // 2. Download encrypted data from IPFS using the hash
+      // 3. Decrypt data using the AES password
+      // 4. Create blob URL for preview
+
+      throw new Error('File preview not implemented yet');
     } catch (err) {
       console.error('Failed to decrypt file:', err);
     } finally {
@@ -156,33 +66,13 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
 
   const downloadFile = async (file: EncryptedFile) => {
     try {
-      console.log('Downloading file:', file.filename);
-      
-      let encryptedData = file.encryptedData;
-      if (encryptedData.startsWith('encrypted_sample_')) {
-        const mockContent = `Mock content for file: ${file.filename}\nFile ID: ${file.id}\nType: ${file.fileType}\nSize: ${file.fileSize} bytes\nUploaded: ${new Date(file.timestamp).toLocaleString()}`;
-        const blob = new Blob([mockContent], { type: file.fileType });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.filename;
-        a.click();
-        
-        URL.revokeObjectURL(url);
-        return;
-      }
-      
-      const decryptedBuffer = await CryptoUtils.decryptFile(encryptedData, file.aesPassword);
-      const blob = new Blob([decryptedBuffer], { type: file.fileType });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.filename;
-      a.click();
-      
-      URL.revokeObjectURL(url);
+      // TODO: Implement real file download
+      // 1. Get file data from contract using getFileData()
+      // 2. Download encrypted data from IPFS using the hash
+      // 3. Decrypt data using the AES password
+      // 4. Create and trigger download
+
+      throw new Error('File download not implemented yet');
     } catch (err) {
       console.error('Failed to download file:', err);
       alert('Failed to download file: ' + (err instanceof Error ? err.message : 'Unknown error'));
