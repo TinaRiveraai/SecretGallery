@@ -29,8 +29,7 @@ export function useFHE() {
 
       console.log('Creating FHE instance...');
       const config = {
-        ...SepoliaConfig,
-        network: (typeof window !== 'undefined' && window.ethereum) || 'https://sepolia.infura.io/v3/YOUR_INFURA_KEY'
+        ...SepoliaConfig
       };
 
       const fheInstance = await createInstance(config);

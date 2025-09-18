@@ -6,7 +6,7 @@ import type { UploadProgress } from '../utils';
 
 interface FileUploadProps {
   onUploadComplete?: (fileId: number) => void;
-  fheInstance?: any; // FHE实例从父组件传入
+  fheInstance?: any; // FHE instance passed from parent component
 }
 
 interface FileData {
@@ -26,7 +26,7 @@ export function FileUpload({ onUploadComplete, fheInstance }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [fileData, setFileData] = useState<FileData | null>(null);
 
-  // 使用传入的FHE实例，如果没有则使用hook
+  // Use passed FHE instance, fallback to hook if not provided
   const { instance: hookInstance } = useFHE();
   const instance = fheInstance || hookInstance;
   const { uploadFile, isConnected, connectContract } = useViemContract(instance);
@@ -57,32 +57,32 @@ export function FileUpload({ onUploadComplete, fheInstance }: FileUploadProps) {
 
       setProgress({ stage: 'encrypting', progress: 10 });
 
-      // 生成AES密码（EVM地址格式）
+      // Generate AES password (EVM address format)
       const aesPassword = FileEncryption.generatePassword();
       console.log('Generated AES password:', aesPassword);
 
       setProgress({ stage: 'encrypting', progress: 30 });
 
-      // 将文件转换为Base64并加密
+      // Convert file to Base64 and encrypt
       const fileBase64 = await FileEncryption.fileToBase64(file);
       const encryptedData = FileEncryption.encryptFile(fileBase64, aesPassword);
       console.log('File encrypted, size:', encryptedData.length);
 
       setProgress({ stage: 'uploading', progress: 50 });
 
-      // 上传到伪IPFS
+      // Upload to fake IPFS
       const ipfsHash = await FakeIPFS.uploadToIPFS(encryptedData);
       console.log('Uploaded to Fake IPFS:', ipfsHash);
 
       setProgress({ stage: 'uploading', progress: 90 });
 
-      // 转换IPFS哈希为数字
+      // Convert IPFS hash to number
       const ipfsHashNumber = FileEncryption.hashToNumber(ipfsHash);
       console.log('IPFS hash as number:', ipfsHashNumber.toString());
 
       setProgress({ stage: 'completed', progress: 100 });
 
-      // 保存文件数据，等待用户点击上链
+      // Save file data, wait for user to save to blockchain
       setFileData({
         file,
         aesPassword,
@@ -129,13 +129,13 @@ export function FileUpload({ onUploadComplete, fheInstance }: FileUploadProps) {
 
       setProgress({ stage: 'storing', progress: 30 });
 
-      // 上传到合约
+      // Upload to contract
       const fileId = await uploadFile(fileData.ipfsHashNumber, fileData.aesPassword);
       console.log('Stored in contract, fileId:', fileId);
 
       setProgress({ stage: 'storing', progress: 80 });
 
-      // 不再保存到localStorage
+      // No longer save to localStorage
 
       setProgress({ stage: 'completed', progress: 100 });
 

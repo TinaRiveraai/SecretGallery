@@ -9,7 +9,7 @@ import type { EncryptedFile } from '../utils';
 interface FileGalleryProps {
   onFileSelect?: (file: EncryptedFile) => void;
   refreshTrigger?: number;
-  fheInstance?: any; // FHE实例从父组件传入
+  fheInstance?: any; // FHE instance passed from parent component
 }
 
 export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileGalleryProps) {
@@ -20,10 +20,10 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
   const [decryptedPreviews, setDecryptedPreviews] = useState<Map<number, string>>(new Map());
   const [decryptedData, setDecryptedData] = useState<Map<number, {ipfsHash: string, aesPassword: string}>>(new Map());
 
-  // 使用wagmi检查钱包连接状态
+  // Use wagmi to check wallet connection status
   const { isConnected: walletConnected, address: walletAddress } = useAccount();
 
-  // 使用传入的FHE实例，如果没有则使用hook
+  // Use passed FHE instance, fallback to hook if not provided
   const { instance: hookInstance } = useFHE();
   const instance = fheInstance || hookInstance;
 
@@ -45,13 +45,13 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
     const contract = new ethers.Contract(CONTRACT_ADDRESS, SECRET_GALLERY_ABI, signer);
     const userAddress = await signer.getAddress();
 
-    // 获取加密的文件数据
+    // Get encrypted file data
     const [encryptedIpfsHash, encryptedAesPassword] = await contract.getFileData(fileId);
 
-    // 创建解密密钥对
+    // Create decryption keypair
     const keypair = instance.generateKeypair();
 
-    // 准备用户解密
+    // Prepare user decryption
     const handleContractPairs = [
       { handle: encryptedIpfsHash, contractAddress: CONTRACT_ADDRESS },
       { handle: encryptedAesPassword, contractAddress: CONTRACT_ADDRESS }
@@ -61,7 +61,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
     const durationDays = "10";
     const contractAddresses = [CONTRACT_ADDRESS];
 
-    // 创建EIP712签名
+    // Create EIP712 signature
     const eip712 = instance.createEIP712(
       keypair.publicKey,
       contractAddresses,
@@ -69,7 +69,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
       durationDays
     );
 
-    // 签名
+    // Sign
     const signature = await signer.signTypedData(
       eip712.domain,
       {
@@ -78,7 +78,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
       eip712.message
     );
 
-    // 执行用户解密
+    // Execute user decryption
     const decryptedData = await instance.userDecrypt(
       handleContractPairs,
       keypair.privateKey,
@@ -103,10 +103,10 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
 
       console.log('Loading user files...');
 
-      // 使用简化的RPC provider而不是MetaMask
+      // Use simplified RPC provider instead of MetaMask
       const provider = new ethers.JsonRpcProvider("https://sepolia.infura.io/v3/c501d55ad9924cf5905ae1954ec6f7f3");
 
-      // 简化的ABI
+      // Simplified ABI
       const simpleAbi = [
         "function getCurrentFileId() external view returns (uint256)",
         "function getOwnerFiles(address owner) external view returns (uint256[] memory)",
@@ -124,19 +124,19 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
       const fileIds = await contract.getOwnerFiles(userAddress);
       console.log('User file IDs:', fileIds);
 
-      // 如果没有文件ID，直接返回空数组
+      // If no file IDs, return empty array directly
       if (fileIds.length === 0) {
         console.log('No files found for user');
         setFiles([]);
         return;
       }
 
-      // 转换文件ID为EncryptedFile对象
+      // Convert file IDs to EncryptedFile objects
       const filePromises = fileIds.map(async (fileId: any) => {
         try {
           const id = Number(fileId.toString());
 
-          // 获取文件元数据
+          // Get file metadata
           const [owner, timestamp] = await contract.getFileMetadata(id);
 
           const encryptedFile: EncryptedFile = {
@@ -145,7 +145,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
             ipfsHash: '',
             aesPassword: '',
             owner: owner,
-            timestamp: Number(timestamp.toString()) * 1000, // 转换为毫秒
+            timestamp: Number(timestamp.toString()) * 1000, // Convert to milliseconds
             filename: `File ${fileId}`,
             fileType: 'application/octet-stream',
             fileSize: 0,
@@ -181,7 +181,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
     try {
       let ipfsHash, aesPassword;
 
-      // 从合约获取加密的文件数据并解密
+      // Get encrypted file data from contract and decrypt
       console.log('Getting encrypted file data from contract...');
       const fileData = await getFileData(file.id);
       ipfsHash = FileEncryption.numberToHash(BigInt(fileData.ipfsHash));
@@ -190,7 +190,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
       console.log('Decrypted IPFS hash:', ipfsHash);
       console.log('Decrypted AES password:', aesPassword);
 
-      // 保存解密后的数据
+      // Save decrypted data
       setDecryptedData(prev => new Map(prev).set(file.id, {
         ipfsHash,
         aesPassword
@@ -211,24 +211,24 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
     try {
       let ipfsHash, aesPassword;
 
-      // 如果本地有缓存，直接使用
+      // If local cache exists, use it directly
       if (file.ipfsHash && file.aesPassword) {
         ipfsHash = file.ipfsHash;
         aesPassword = file.aesPassword;
       } else {
-        // 从合约获取加密的文件数据
+        // Get encrypted file data from contract
         const fileData = await getFileData(file.id);
         ipfsHash = FileEncryption.numberToHash(BigInt(fileData.ipfsHash));
         aesPassword = fileData.aesPassword;
       }
 
-      // 从伪IPFS下载加密数据
+      // Download encrypted data from fake IPFS
       const encryptedData = await FakeIPFS.downloadFromIPFS(ipfsHash);
 
-      // 解密文件数据
+      // Decrypt file data
       const decryptedBase64 = FileEncryption.decryptFile(encryptedData, aesPassword);
 
-      // 创建Blob并触发下载
+      // Create Blob and trigger download
       const blob = FileEncryption.base64ToBlob(decryptedBase64, file.fileType);
       const url = URL.createObjectURL(blob);
 
@@ -335,7 +335,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
                     disabled={decryptingFiles.has(file.id)}
                     style={{ fontSize: '12px', padding: '6px 12px' }}
                   >
-                    {decryptingFiles.has(file.id) ? 'Decrypting...' : '解密'}
+                    {decryptingFiles.has(file.id) ? 'Decrypting...' : 'Decrypt'}
                   </button>
                 </div>
               )}
@@ -352,7 +352,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
                 File #{file.id} • {file.fileType}
               </div>
 
-              {/* 显示加密的IPFS哈希和密码 */}
+              {/* Display encrypted IPFS hash and password */}
               <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
                 <div style={{ marginBottom: '4px' }}>
                   <strong>IPFS Hash:</strong> {decryptedData.has(file.id) ? decryptedData.get(file.id)?.ipfsHash : '********************************'}

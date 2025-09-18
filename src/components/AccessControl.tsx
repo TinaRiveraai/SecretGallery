@@ -32,7 +32,7 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
 
   const loadGrantedAccesses = async () => {
     try {
-      // 从本地存储加载授权列表
+      // Load granted access list from local storage
       const storedGrants = localStorage.getItem(`file_grants_${file.id}`);
       if (storedGrants) {
         const grants = JSON.parse(storedGrants) as GrantedAccess[];
@@ -73,7 +73,7 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
     try {
       await grantFileAccess(file.id, newGranteeAddress);
 
-      // 保存授权记录到本地存储
+      // Save grant record to local storage
       const newAccess: GrantedAccess = {
         address: newGranteeAddress,
         grantedAt: Date.now(),
@@ -83,7 +83,7 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
       const newGrantedAccesses = [...grantedAccesses, newAccess];
       setGrantedAccesses(newGrantedAccesses);
 
-      // 保存到本地存储
+      // Save to local storage
       localStorage.setItem(`file_grants_${file.id}`, JSON.stringify(newGrantedAccesses));
 
       setSuccess(`Access granted to ${newGranteeNickname || newGranteeAddress}`);
@@ -106,13 +106,13 @@ export function AccessControl({ file, onClose }: AccessControlProps) {
     setSuccess(null);
 
     try {
-      // TODO: 实现真实的撤销访问权限（当前暂未实现合约的revokeFileAccess功能）
+      // TODO: Implement real access revocation (contract revokeFileAccess function not yet implemented)
 
-      // 从本地状态移除授权
+      // Remove grant from local state
       const updatedAccesses = grantedAccesses.filter(access => access.address !== address);
       setGrantedAccesses(updatedAccesses);
 
-      // 更新本地存储
+      // Update local storage
       localStorage.setItem(`file_grants_${file.id}`, JSON.stringify(updatedAccesses));
 
       const revokedAccess = grantedAccesses.find(access => access.address === address);
