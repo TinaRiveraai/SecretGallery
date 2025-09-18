@@ -161,15 +161,8 @@ export function FileUpload({ onUploadComplete, fheInstance }: FileUploadProps) {
     } catch (err) {
       console.error('Blockchain storage failed:', err);
       let errorMessage = 'Blockchain storage failed';
-
       if (err instanceof Error) {
-        if (err.message.includes('Contract not connected')) {
-          errorMessage = 'Please connect your wallet and make sure you are on Sepolia testnet';
-        } else if (err.message.includes('User rejected')) {
-          errorMessage = 'Transaction was rejected by user';
-        } else {
-          errorMessage = err.message;
-        }
+        errorMessage = err.message;
       }
 
       setError(errorMessage);

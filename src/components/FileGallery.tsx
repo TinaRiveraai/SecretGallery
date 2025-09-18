@@ -1,52 +1,130 @@
 import React, { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
+import { ethers } from 'ethers';
 import { FakeIPFS, FileEncryption } from '../utils';
-import { useViemContract } from '../hooks/useViemContract';
 import { useFHE } from '../hooks/useFHE';
-import type { EncryptedFile, FileMetadata } from '../utils';
+import { SECRET_GALLERY_ABI } from '../utils/SecretGalleryABI';
+import type { EncryptedFile } from '../utils';
 
 interface FileGalleryProps {
   onFileSelect?: (file: EncryptedFile) => void;
   refreshTrigger?: number;
+  fheInstance?: any; // FHE实例从父组件传入
 }
 
-export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) {
+export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileGalleryProps) {
   const [files, setFiles] = useState<EncryptedFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [decryptingFiles, setDecryptingFiles] = useState<Set<number>>(new Set());
   const [decryptedPreviews, setDecryptedPreviews] = useState<Map<number, string>>(new Map());
 
-  const { instance } = useFHE();
-  const { getUserFiles, getFileData, getFileMetadata, isConnected, connectContract } = useViemContract(instance);
+  // 使用wagmi检查钱包连接状态
+  const { isConnected: walletConnected, address: walletAddress } = useAccount();
+
+  // 使用传入的FHE实例，如果没有则使用hook
+  const { instance: hookInstance } = useFHE();
+  const instance = fheInstance || hookInstance;
+
+  const CONTRACT_ADDRESS = '0x0abd7c0266b5Dd044A9888F93530b1680fBeda0E';
 
   useEffect(() => {
-    loadUserFiles();
-  }, [refreshTrigger]);
+    if (instance) {
+      loadUserFiles();
+    }
+  }, [refreshTrigger, instance]);
 
-  const loadUserFiles = async () => {
-    if (!isConnected) {
-      try {
-        await connectContract();
-      } catch (err) {
-        setError('Failed to connect to contract');
-        setLoading(false);
-        return;
-      }
+  const getFileData = async (fileId: number) => {
+    if (!window.ethereum) {
+      throw new Error('MetaMask not found');
     }
 
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, SECRET_GALLERY_ABI, signer);
+    const userAddress = await signer.getAddress();
+
+    // 获取加密的文件数据
+    const [encryptedIpfsHash, encryptedAesPassword] = await contract.getFileData(fileId);
+
+    // 创建解密密钥对
+    const keypair = instance.generateKeypair();
+
+    // 准备用户解密
+    const handleContractPairs = [
+      { handle: encryptedIpfsHash, contractAddress: CONTRACT_ADDRESS },
+      { handle: encryptedAesPassword, contractAddress: CONTRACT_ADDRESS }
+    ];
+
+    const startTimeStamp = Math.floor(Date.now() / 1000).toString();
+    const durationDays = "10";
+    const contractAddresses = [CONTRACT_ADDRESS];
+
+    // 创建EIP712签名
+    const eip712 = instance.createEIP712(
+      keypair.publicKey,
+      contractAddresses,
+      startTimeStamp,
+      durationDays
+    );
+
+    // 签名
+    const signature = await signer.signTypedData(
+      eip712.domain,
+      eip712.types,
+      eip712.message
+    );
+
+    // 执行用户解密
+    const decryptedData = await instance.userDecrypt(
+      handleContractPairs,
+      keypair.privateKey,
+      keypair.publicKey,
+      signature.replace('0x', ''),
+      contractAddresses,
+      userAddress,
+      startTimeStamp,
+      durationDays
+    );
+
+    return {
+      ipfsHash: decryptedData[encryptedIpfsHash],
+      aesPassword: decryptedData[encryptedAesPassword]
+    };
+  };
+
+  const loadUserFiles = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // 获取用户的文件ID列表
-      const fileIds = await getUserFiles();
+      console.log('Loading user files...');
+
+      // 直接从合约读取
+      if (!window.ethereum) {
+        throw new Error('MetaMask not found');
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, SECRET_GALLERY_ABI, provider);
+
+      let userAddress = walletAddress;
+      if (!userAddress) {
+        const signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+      }
+
+      console.log('Reading files for user:', userAddress);
+      const fileIds = await contract.getOwnerFiles(userAddress);
       console.log('User file IDs:', fileIds);
 
       // 转换文件ID为EncryptedFile对象
-      const filePromises = fileIds.map(async (fileId: number) => {
+      const filePromises = fileIds.map(async (fileId: any) => {
         try {
+          const id = Number(fileId.toString());
+
           // 获取文件元数据
-          const metadata = await getFileMetadata(fileId);
+          const [owner, timestamp] = await contract.getFileMetadata(id);
 
           // 从本地存储获取缓存的元数据（如果有）
           const cachedMetaStr = localStorage.getItem(`file_meta_${fileId}`);
@@ -57,8 +135,8 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
             encryptedData: cachedMeta?.encryptedData || '',
             ipfsHash: cachedMeta?.ipfsHash || '',
             aesPassword: cachedMeta?.aesPassword || '',
-            owner: metadata.owner,
-            timestamp: metadata.timestamp * 1000, // 转换为毫秒
+            owner: owner,
+            timestamp: Number(timestamp.toString()) * 1000, // 转换为毫秒
             filename: cachedMeta?.filename || `File ${fileId}`,
             fileType: cachedMeta?.fileType || 'application/octet-stream',
             fileSize: cachedMeta?.fileSize || 0,
@@ -75,7 +153,13 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
       setFiles(loadedFiles);
     } catch (err) {
       console.error('Failed to load files:', err);
-      setError('Failed to load files');
+
+      let errorMessage = 'Failed to load files';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -180,6 +264,7 @@ export function FileGallery({ onFileSelect, refreshTrigger }: FileGalleryProps) 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString() + ' ' + new Date(timestamp).toLocaleTimeString();
   };
+
 
   if (loading) {
     return (

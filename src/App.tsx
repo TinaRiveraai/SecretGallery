@@ -170,9 +170,10 @@ function App() {
         )}
         
         {activeTab === 'gallery' && (
-          <FileGallery 
+          <FileGallery
             onFileSelect={handleFileSelect}
             refreshTrigger={refreshTrigger}
+            fheInstance={instance}
           />
         )}
       </main>

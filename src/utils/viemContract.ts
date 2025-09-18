@@ -20,9 +20,20 @@ export class EthersContractService {
   async connect(): Promise<void> {
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
+        // 请求用户连接钱包
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+
         // 创建provider和signer
         this.provider = new ethers.BrowserProvider(window.ethereum);
         this.signer = await this.provider.getSigner();
+
+        // 验证网络
+        const network = await this.provider.getNetwork();
+        console.log('Connected to network:', network.name, 'chainId:', network.chainId);
+
+        if (network.chainId !== 11155111n) { // Sepolia chainId
+          throw new Error('Please switch to Sepolia testnet. Current network: ' + network.name);
+        }
 
         // 创建合约实例
         this.contract = new ethers.Contract(CONTRACT_ADDRESS, SECRET_GALLERY_ABI, this.signer);
@@ -38,6 +49,7 @@ export class EthersContractService {
       console.log('Ethers contract service connected');
     } catch (error) {
       console.error('Failed to connect ethers contract service:', error);
+      this.connected = false;
       throw error;
     }
   }
@@ -112,18 +124,20 @@ export class EthersContractService {
 
   // 获取用户的文件列表
   async getUserFiles(userAddress?: string): Promise<number[]> {
-    if (!this.connected || !this.contract || !this.signer) {
-      throw new Error('Contract service not connected');
-    }
-
     try {
       console.log('Reading user files from contract...');
 
+      // 如果没有连接，先连接
+      if (!this.connected || !this.contract || !this.signer) {
+        console.log('Contract not ready, connecting...');
+        await this.connect();
+      }
+
       // 获取用户地址
-      const address = userAddress || await this.signer.getAddress();
+      const address = userAddress || await this.signer!.getAddress();
 
       // 调用合约读取用户文件
-      const fileIds = await this.contract.getOwnerFiles(address);
+      const fileIds = await this.contract!.getOwnerFiles(address);
 
       console.log('User files from contract:', fileIds);
       return fileIds.map((id: any) => Number(id.toString()));
@@ -250,7 +264,7 @@ export class EthersContractService {
 
   // 检查连接状态
   isConnected(): boolean {
-    return this.connected;
+    return this.connected && this.provider && this.signer && this.contract;
   }
 
   // 获取合约地址

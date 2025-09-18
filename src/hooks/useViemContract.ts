@@ -13,11 +13,11 @@ export function useViemContract(fheInstance: FHEInstance | null) {
   const { disconnect } = useDisconnect();
 
   useEffect(() => {
-    if (fheInstance && !contractService) {
+    if (fheInstance) {
       const service = new EthersContractService(fheInstance);
       setContractService(service);
     }
-  }, [fheInstance, contractService]);
+  }, [fheInstance]);
 
   const connectContract = async () => {
     if (!contractService) {
@@ -56,13 +56,25 @@ export function useViemContract(fheInstance: FHEInstance | null) {
   };
 
   const getUserFiles = async (userAddress?: string): Promise<number[]> => {
-    if (!contractService?.isConnected()) {
-      throw new Error('Contract not connected');
+    if (!contractService) {
+      throw new Error('Contract service not initialized');
     }
-    return contractService.getUserFiles(userAddress || address);
+
+    try {
+      // 直接尝试调用，让EthersContractService内部处理连接
+      return await contractService.getUserFiles(userAddress || address);
+    } catch (err) {
+      // 如果失败，尝试连接然后重试
+      console.log('First attempt failed, trying to connect...');
+      await connectContract();
+      return await contractService.getUserFiles(userAddress || address);
+    }
   };
 
   const getFileData = async (fileId: number) => {
+    if (!contractService?.isConnected()) {
+      await connectContract();
+    }
     if (!contractService?.isConnected()) {
       throw new Error('Contract not connected');
     }
@@ -70,6 +82,9 @@ export function useViemContract(fheInstance: FHEInstance | null) {
   };
 
   const getFileMetadata = async (fileId: number) => {
+    if (!contractService?.isConnected()) {
+      await connectContract();
+    }
     if (!contractService?.isConnected()) {
       throw new Error('Contract not connected');
     }

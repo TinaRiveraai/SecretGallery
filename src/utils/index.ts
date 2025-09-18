@@ -33,6 +33,7 @@ export interface FHEInstance {
   createEncryptedInput: (contractAddress: string, userAddress: string) => any;
   generateKeypair: () => { publicKey: string; privateKey: string };
   userDecrypt: (...args: any[]) => Promise<any>;
+  createEIP712: (publicKey: string, contractAddresses: string[], startTimeStamp: string, durationDays: string) => any;
 }
 
 // 导出工具类
