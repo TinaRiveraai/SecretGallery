@@ -3,7 +3,7 @@ import { SECRET_GALLERY_ABI } from './SecretGalleryABI';
 import type { FHEInstance } from './index';
 
 // 合约地址（已部署在Sepolia测试网）
-const CONTRACT_ADDRESS = '0x0abd7c0266b5Dd044A9888F93530b1680fBeda0E' as const;
+const CONTRACT_ADDRESS = '0xd72b2ED6708BB2AA5A31B92Ce5a3679E5834B951' as const;
 
 export class EthersContractService {
   private provider: ethers.BrowserProvider | null = null;

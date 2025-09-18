@@ -5,14 +5,14 @@ import "@nomicfoundation/hardhat-verify";
 import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
-import type { HardhatUserConfig } from "hardhat/config";
-import { vars } from "hardhat/config";
+import type { HardhatUserConfig } from "hardhat/config.js";
+import { vars } from "hardhat/config.js";
 import "solidity-coverage";
 import "dotenv/config";
 
-import "./tasks/accounts";
-import "./tasks/FHECounter";
-import "./tasks/SecretGallery";
+// import "./tasks/accounts.js";
+// import "./tasks/FHECounter.js";
+// import "./tasks/SecretGallery.js";
 
 // Load environment variables
 const PRIVATE_KEY: string = process.env.PRIVATE_KEY || "";

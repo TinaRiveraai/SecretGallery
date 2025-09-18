@@ -12,7 +12,7 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "noImplicitAny": true,
     "removeComments": true,
     "resolveJsonModule": true,

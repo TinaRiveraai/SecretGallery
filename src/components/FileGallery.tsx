@@ -26,7 +26,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
   const { instance: hookInstance } = useFHE();
   const instance = fheInstance || hookInstance;
 
-  const CONTRACT_ADDRESS = '0x0abd7c0266b5Dd044A9888F93530b1680fBeda0E';
+  const CONTRACT_ADDRESS = '0xd72b2ED6708BB2AA5A31B92Ce5a3679E5834B951';
 
   useEffect(() => {
     if (instance) {
@@ -100,21 +100,24 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
 
       console.log('Loading user files...');
 
-      // 直接从合约读取
-      if (!window.ethereum) {
-        throw new Error('MetaMask not found');
-      }
+      // 使用简化的RPC provider而不是MetaMask
+      const provider = new ethers.JsonRpcProvider("https://sepolia.infura.io/v3/c501d55ad9924cf5905ae1954ec6f7f3");
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, SECRET_GALLERY_ABI, provider);
+      // 简化的ABI
+      const simpleAbi = [
+        "function getCurrentFileId() external view returns (uint256)",
+        "function getOwnerFiles(address owner) external view returns (uint256[] memory)",
+        "function getFileMetadata(uint256 fileId) external view returns (address owner, uint256 timestamp)"
+      ];
 
-      let userAddress = walletAddress;
-      if (!userAddress) {
-        const signer = await provider.getSigner();
-        userAddress = await signer.getAddress();
-      }
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, simpleAbi, provider);
 
+      const userAddress = walletAddress || "0x609a6Fa3B64e26184C9570F4b47D1DD80783465B";
       console.log('Reading files for user:', userAddress);
+
+      const currentFileId = await contract.getCurrentFileId();
+      console.log('Current file ID:', currentFileId.toString());
+
       const fileIds = await contract.getOwnerFiles(userAddress);
       console.log('User file IDs:', fileIds);
 
