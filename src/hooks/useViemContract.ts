@@ -29,15 +29,15 @@ export function useViemContract(fheInstance: FHEInstance | null) {
       setIsConnecting(true);
       setError(null);
 
-      // 连接钱包
+      // Connect wallet
       if (!isConnected) {
-        const connector = connectors[0]; // 使用第一个可用的连接器
+        const connector = connectors[0]; // Use the first available connector
         if (connector) {
           connect({ connector });
         }
       }
 
-      // 连接合约服务
+      // Connect contract service
       await contractService.connect();
       console.log('Viem contract connected successfully');
     } catch (err) {
@@ -61,10 +61,10 @@ export function useViemContract(fheInstance: FHEInstance | null) {
     }
 
     try {
-      // 直接尝试调用，让EthersContractService内部处理连接
+      // Try to call directly, let EthersContractService handle connection internally
       return await contractService.getUserFiles(userAddress || address);
     } catch (err) {
-      // 如果失败，尝试连接然后重试
+      // If failed, try to connect then retry
       console.log('First attempt failed, trying to connect...');
       await connectContract();
       return await contractService.getUserFiles(userAddress || address);

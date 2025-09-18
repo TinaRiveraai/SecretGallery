@@ -1,26 +1,26 @@
 export class FakeIPFS {
   private static storage: Map<string, string> = new Map();
 
-  // Mock IPFS上传 - 生成假的IPFS hash并存储数据
+  // Mock IPFS upload - generate fake IPFS hash and store data
   static async uploadToIPFS(encryptedData: string): Promise<string> {
-    // 生成符合IPFS格式的假hash (Qm开头，46个字符，base58编码)
+    // Generate fake hash in IPFS format (starts with Qm, 46 characters, base58 encoded)
     const base58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-    // 创建一个简单的hash函数
+    // Create a simple hash function
     const createHash = (input: string): string => {
       let hash = 0;
       for (let i = 0; i < input.length; i++) {
         const char = input.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // 转换为32位整数
+        hash = hash & hash; // Convert to 32-bit integer
       }
       return Math.abs(hash).toString();
     };
 
-    // 使用数据内容、时间戳和随机数生成hash
+    // Use data content, timestamp and random number to generate hash
     const seed = createHash(encryptedData + Date.now() + Math.random());
 
-    // 生成44位base58字符串
+    // Generate 44-character base58 string
     let fakeHash = 'Qm';
     const seedNum = parseInt(seed);
 
@@ -29,28 +29,28 @@ export class FakeIPFS {
       fakeHash += base58chars[index];
     }
 
-    // 存储到内存中模拟IPFS存储
+    // Store in memory to simulate IPFS storage
     this.storage.set(fakeHash, encryptedData);
 
     console.log(`Mock IPFS upload: ${fakeHash}`);
 
-    // 模拟网络延迟
+    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 100));
 
     return fakeHash;
   }
 
-  // Mock IPFS下载 - 从存储中获取数据或返回假数据
+  // Mock IPFS download - get data from storage or return fake data
   static async downloadFromIPFS(hash: string): Promise<string> {
-    // 模拟网络延迟
+    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 50));
 
     const data = this.storage.get(hash);
     if (!data) {
-      // 如果找不到文件，返回假的加密数据而不是抛出错误
+      // If file not found, return fake encrypted data instead of throwing error
       console.log(`Mock IPFS: File not found for hash ${hash}, returning fake data`);
 
-      // 生成假的加密数据（简单的base64编码文本）
+      // Generate fake encrypted data (simple base64 encoded text)
       const fakeContent = `This is fake encrypted data for hash ${hash}`;
       const fakeEncryptedData = btoa(fakeContent);
       return fakeEncryptedData;
@@ -61,7 +61,7 @@ export class FakeIPFS {
   }
 
   static convertHashToNumber(hash: string): bigint {
-    // 移除 "Qm" 前缀
+    // Remove "Qm" prefix
     const hashWithoutPrefix = hash.replace(/^Qm/, '');
 
     let result = BigInt(0);
@@ -89,12 +89,12 @@ export class FakeIPFS {
     return /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(hash);
   }
 
-  // 清理存储（用于测试）
+  // Clear storage (for testing)
   static clearStorage(): void {
     this.storage.clear();
   }
 
-  // 获取存储状态（用于调试）
+  // Get storage status (for debugging)
   static getStorageInfo(): { count: number; hashes: string[] } {
     return {
       count: this.storage.size,

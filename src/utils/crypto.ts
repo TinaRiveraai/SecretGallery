@@ -1,5 +1,5 @@
 export class CryptoUtils {
-  // 生成AES密码（Mock - 伪造成EVM地址格式）
+  // Generate AES password (Mock - formatted as EVM address)
   static generatePassword(): string {
     const randomHex = Math.random().toString(16).substr(2, 40);
     return '0x' + randomHex.padEnd(40, '0');
@@ -10,15 +10,15 @@ export class CryptoUtils {
   }
 
   static formatAsEVMAddress(input: string): string {
-    // Mock格式化为EVM地址
+    // Mock format as EVM address
     const hash = input.replace(/[^0-9a-f]/gi, '').toLowerCase();
     return '0x' + hash.substr(0, 40).padEnd(40, '0');
   }
 
-  // Mock AES加密文件（使用简单编码模拟）
+  // Mock AES encrypt file (using simple encoding simulation)
   static encryptFile(fileData: string, password: string): string {
     try {
-      // Mock加密：简单的base64编码 + 密码前缀
+      // Mock encryption: simple base64 encoding + password prefix
       const base64Data = btoa(fileData);
       const mockEncrypted = `mock_encrypted_${password.slice(-8)}_${base64Data}`;
       console.log('File encrypted successfully (mock)');
@@ -29,10 +29,10 @@ export class CryptoUtils {
     }
   }
 
-  // Mock AES解密文件
+  // Mock AES decrypt file
   static decryptFile(encryptedData: string, password: string): string {
     try {
-      // Mock解密：检查密码并解码base64
+      // Mock decryption: check password and decode base64
       const passwordSuffix = password.slice(-8);
       const prefix = `mock_encrypted_${passwordSuffix}_`;
 
@@ -55,7 +55,7 @@ export class CryptoUtils {
     }
   }
 
-  // 将文件转换为Base64字符串
+  // Convert file to Base64 string
   static fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -68,7 +68,7 @@ export class CryptoUtils {
     });
   }
 
-  // 将Base64字符串转换为Blob
+  // Convert Base64 string to Blob
   static base64ToBlob(base64: string, type: string): Blob {
     const byteCharacters = atob(base64.split(',')[1]);
     const byteNumbers = new Array(byteCharacters.length);
@@ -81,12 +81,12 @@ export class CryptoUtils {
     return new Blob([byteArray], { type });
   }
 
-  // IPFS哈希转换为数字（简化版）
+  // Convert IPFS hash to number (simplified version)
   static hashToNumber(hash: string): bigint {
-    // 移除 "Qm" 前缀并转换为数字
+    // Remove "Qm" prefix and convert to number
     const hashWithoutPrefix = hash.replace(/^Qm/, '');
 
-    // 使用简单的字符编码转换为数字
+    // Use simple character encoding to convert to number
     let result = BigInt(0);
     for (let i = 0; i < Math.min(hashWithoutPrefix.length, 30); i++) {
       const charCode = BigInt(hashWithoutPrefix.charCodeAt(i));
@@ -96,7 +96,7 @@ export class CryptoUtils {
     return result;
   }
 
-  // 数字转换回IPFS哈希
+  // Convert number back to IPFS hash
   static numberToHash(num: bigint): string {
     let remaining = num;
     let chars = '';
@@ -109,7 +109,7 @@ export class CryptoUtils {
     return 'Qm' + chars;
   }
 
-  // 兼容原有的接口
+  // Compatible with original interface
   static async encryptFileAsync(file: File, password: string): Promise<string> {
     const base64 = await this.fileToBase64(file);
     return this.encryptFile(base64, password);

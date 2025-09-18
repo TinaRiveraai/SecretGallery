@@ -1,15 +1,15 @@
-// 伪IPFS实现 - 用于演示，实际项目中替换为真实IPFS
+// Mock IPFS implementation - for demonstration, replace with real IPFS in actual projects
 export class FakeIPFS {
   private static storage = new Map<string, string>();
 
-  // 生成伪IPFS哈希
+  // Generate mock IPFS hash
   static generateHash(data: string): string {
-    // 简单的哈希生成（实际应用中使用真实IPFS哈希）
+    // Simple hash generation (use real IPFS hash in actual applications)
     const hash = btoa(data).replace(/[^a-zA-Z0-9]/g, '').substr(0, 46);
     return `Qm${hash}`;
   }
 
-  // 伪上传文件到IPFS
+  // Mock upload file to IPFS
   static async upload(data: string): Promise<string> {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -17,11 +17,11 @@ export class FakeIPFS {
         this.storage.set(hash, data);
         console.log(`Fake IPFS: Uploaded data with hash ${hash}`);
         resolve(hash);
-      }, 500 + Math.random() * 1000); // 模拟网络延迟
+      }, 500 + Math.random() * 1000); // Simulate network delay
     });
   }
 
-  // 伪从IPFS下载文件
+  // Mock download file from IPFS
   static async download(hash: string): Promise<string> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -32,21 +32,21 @@ export class FakeIPFS {
         } else {
           reject(new Error(`File not found for hash: ${hash}`));
         }
-      }, 300 + Math.random() * 700); // 模拟网络延迟
+      }, 300 + Math.random() * 700); // Simulate network delay
     });
   }
 
-  // 检查文件是否存在
+  // Check if file exists
   static exists(hash: string): boolean {
     return this.storage.has(hash);
   }
 
-  // 获取存储的文件数量（调试用）
+  // Get number of stored files (for debugging)
   static getStorageSize(): number {
     return this.storage.size;
   }
 
-  // 清空存储（调试用）
+  // Clear storage (for debugging)
   static clearStorage(): void {
     this.storage.clear();
   }

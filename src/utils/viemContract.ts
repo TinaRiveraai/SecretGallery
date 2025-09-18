@@ -71,19 +71,19 @@ export class EthersContractService {
       // Get user address
       const userAddress = await this.signer.getAddress();
 
-      // 创建加密输入
+      // Create encrypted input
       const input = this.fheInstance.createEncryptedInput(CONTRACT_ADDRESS, userAddress);
       input.add256(ipfsHashNumber);
       input.addAddress(aesPassword);
 
-      // 加密输入
+      // Encrypt input
       const encryptedInput = await input.encrypt();
       console.log('Encrypted input created:', encryptedInput);
 
-      // 设置gasLimit
+      // Set gasLimit
       const gasLimit = 12_000_000n;
 
-      // 调用合约
+      // Call contract
       const tx = await this.contract.uploadFile(
         encryptedInput.handles[0], // encrypted IPFS hash
         encryptedInput.handles[1], // encrypted AES password
@@ -93,14 +93,14 @@ export class EthersContractService {
 
       console.log('Transaction sent:', tx.hash);
 
-      // 等待交易确认
+      // Wait for transaction confirmation
       const receipt = await tx.wait();
       console.log('Transaction confirmed:', receipt);
 
-      // 解析事件获取fileId
+      // Parse event to get fileId
       const uploadEvent = receipt.logs.find((log: any) => {
         try {
-          // 解析FileUploaded事件
+          // Parse FileUploaded event
           const parsedLog = this.contract?.interface.parseLog(log);
           return parsedLog?.name === 'FileUploaded';
         } catch {
@@ -122,21 +122,21 @@ export class EthersContractService {
     }
   }
 
-  // 获取用户的文件列表
+  // Get user's file list
   async getUserFiles(userAddress?: string): Promise<number[]> {
     try {
       console.log('Reading user files from contract...');
 
-      // 如果没有连接，先连接
+      // If not connected, connect first
       if (!this.connected || !this.contract || !this.signer) {
         console.log('Contract not ready, connecting...');
         await this.connect();
       }
 
-      // 获取用户地址
+      // Get user address
       const address = userAddress || await this.signer!.getAddress();
 
-      // 调用合约读取用户文件
+      // Call contract to read user files
       const fileIds = await this.contract!.getOwnerFiles(address);
 
       console.log('User files from contract:', fileIds);
@@ -147,7 +147,7 @@ export class EthersContractService {
     }
   }
 
-  // 获取文件的加密数据
+  // Get file's encrypted data
   async getFileData(fileId: number): Promise<{ ipfsHash: string; aesPassword: string }> {
     if (!this.connected || !this.fheInstance || !this.contract || !this.signer) {
       throw new Error('Contract service not properly initialized');
@@ -156,18 +156,18 @@ export class EthersContractService {
     try {
       console.log(`Reading encrypted file data for ID ${fileId}...`);
 
-      // 获取用户地址
+      // Get user address
       const userAddress = await this.signer.getAddress();
 
-      // 获取加密的文件数据
+      // Get encrypted file data
       const [encryptedIpfsHash, encryptedAesPassword] = await this.contract.getFileData(fileId);
 
       console.log('Encrypted data retrieved from contract');
 
-      // 创建解密密钥对
+      // Create decryption keypair
       const keypair = this.fheInstance.generateKeypair();
 
-      // 准备用户解密
+      // Prepare user decryption
       const handleContractPairs = [
         { handle: encryptedIpfsHash, contractAddress: CONTRACT_ADDRESS },
         { handle: encryptedAesPassword, contractAddress: CONTRACT_ADDRESS }
@@ -177,7 +177,7 @@ export class EthersContractService {
       const durationDays = "10";
       const contractAddresses = [CONTRACT_ADDRESS];
 
-      // 创建EIP712签名
+      // Create EIP712 signature
       const eip712 = this.fheInstance.createEIP712(
         keypair.publicKey,
         contractAddresses,
@@ -185,14 +185,14 @@ export class EthersContractService {
         durationDays
       );
 
-      // 签名
+      // Sign
       const signature = await this.signer.signTypedData(
         eip712.domain,
         eip712.types,
         eip712.message
       );
 
-      // 执行用户解密
+      // Execute user decryption
       const decryptedData = await this.fheInstance.userDecrypt(
         handleContractPairs,
         keypair.privateKey,
@@ -214,7 +214,7 @@ export class EthersContractService {
     }
   }
 
-  // 获取文件元数据
+  // Get file metadata
   async getFileMetadata(fileId: number): Promise<{ owner: string; timestamp: number }> {
     if (!this.connected || !this.contract) {
       throw new Error('Contract not connected');
@@ -223,7 +223,7 @@ export class EthersContractService {
     try {
       console.log(`Reading metadata for file ${fileId}...`);
 
-      // 调用合约获取文件元数据
+      // Call contract to get file metadata
       const [owner, timestamp] = await this.contract.getFileMetadata(fileId);
 
       return {
@@ -236,7 +236,7 @@ export class EthersContractService {
     }
   }
 
-  // 授权文件访问
+  // Grant file access
   async grantFileAccess(fileId: number, granteeAddress: string): Promise<void> {
     if (!this.connected || !this.contract) {
       throw new Error('Contract not connected');
@@ -245,15 +245,15 @@ export class EthersContractService {
     try {
       console.log(`Granting access for file ${fileId} to ${granteeAddress}...`);
 
-      // 设置gasLimit
+      // Set gasLimit
       const gasLimit = 12_000_000n;
 
-      // 调用合约授权文件访问
+      // Call contract to grant file access
       const tx = await this.contract.grantFileAccess(fileId, granteeAddress, { gasLimit });
 
       console.log('Grant access transaction sent:', tx.hash);
 
-      // 等待交易确认
+      // Wait for transaction confirmation
       await tx.wait();
       console.log(`Access granted for file ${fileId} to ${granteeAddress}`);
     } catch (error) {
@@ -262,12 +262,12 @@ export class EthersContractService {
     }
   }
 
-  // 检查连接状态
+  // Check connection status
   isConnected(): boolean {
     return this.connected && this.provider && this.signer && this.contract;
   }
 
-  // 获取合约地址
+  // Get contract address
   getContractAddress(): string {
     return CONTRACT_ADDRESS;
   }

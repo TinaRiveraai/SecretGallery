@@ -1,4 +1,4 @@
-// SecretGallery合约ABI - 从编译后的artifacts中复制
+// SecretGallery contract ABI - copied from compiled artifacts
 export const SECRET_GALLERY_ABI = [
   {
     "anonymous": false,

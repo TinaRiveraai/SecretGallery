@@ -1,4 +1,4 @@
-// 数据类型定义
+// Data type definitions
 export interface EncryptedFile {
   id: number;
   encryptedData: string;
@@ -36,8 +36,8 @@ export interface FHEInstance {
   createEIP712: (publicKey: string, contractAddresses: string[], startTimeStamp: string, durationDays: string) => any;
 }
 
-// 导出工具类
+// Export utility classes
 export { FakeIPFS } from './ipfs';
 export { CryptoUtils } from './crypto';
-export { CryptoUtils as FileEncryption } from './crypto'; // 兼容性别名
+export { CryptoUtils as FileEncryption } from './crypto'; // Compatibility alias
 export { EthersContractService } from './viemContract';

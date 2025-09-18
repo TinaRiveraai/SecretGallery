@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { initSDK, createInstance, SepoliaConfig } from '@zama-fhe/relayer-sdk/bundle';
 import type { FHEInstance } from '../utils';
 
-// 添加window类型声明
+// Add window type declaration
 declare global {
   interface Window {
     ethereum?: {
