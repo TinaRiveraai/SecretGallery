@@ -1,0 +1,50 @@
+[build]
+  # Build command
+  command = "npm run build"
+  # Build output directory
+  publish = "dist"
+
+[build.environment]
+  # Set Node.js version
+  NODE_VERSION = "21"
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers configuration to solve MIME type issues
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "*.mjs"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Content-Type = "application/json; charset=utf-8"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
