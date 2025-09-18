@@ -8,12 +8,22 @@ interface FileUploadProps {
   onUploadComplete?: (fileId: number) => void;
 }
 
+interface FileData {
+  file: File;
+  aesPassword: string;
+  encryptedData: string;
+  ipfsHash: string;
+  ipfsHashNumber: bigint;
+}
+
 export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [savingToBlockchain, setSavingToBlockchain] = useState(false);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fileData, setFileData] = useState<FileData | null>(null);
   
   const { instance } = useFHE();
   const { uploadFile, isConnected, connectContract } = useViemContract(instance);
@@ -37,18 +47,10 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
   };
 
   const processFile = async (file: File) => {
-    if (!isConnected) {
-      try {
-        await connectContract();
-      } catch (err) {
-        setError('Failed to connect to contract. Please try again.');
-        return;
-      }
-    }
-
     try {
       setUploading(true);
       setError(null);
+      setFileData(null);
 
       setProgress({ stage: 'encrypting', progress: 10 });
 
@@ -63,34 +65,81 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
       const encryptedData = FileEncryption.encryptFile(fileBase64, aesPassword);
       console.log('File encrypted, size:', encryptedData.length);
 
-      setProgress({ stage: 'uploading', progress: 0 });
+      setProgress({ stage: 'uploading', progress: 50 });
 
       // 上传到伪IPFS
       const ipfsHash = await FakeIPFS.uploadToIPFS(encryptedData);
       console.log('Uploaded to Fake IPFS:', ipfsHash);
 
-      setProgress({ stage: 'uploading', progress: 70 });
-
-      setProgress({ stage: 'storing', progress: 0 });
+      setProgress({ stage: 'uploading', progress: 90 });
 
       // 转换IPFS哈希为数字
       const ipfsHashNumber = FileEncryption.hashToNumber(ipfsHash);
       console.log('IPFS hash as number:', ipfsHashNumber.toString());
 
+      setProgress({ stage: 'completed', progress: 100 });
+
+      // 保存文件数据，等待用户点击上链
+      setFileData({
+        file,
+        aesPassword,
+        encryptedData,
+        ipfsHash,
+        ipfsHashNumber,
+      });
+
+      setTimeout(() => {
+        setProgress(null);
+      }, 1000);
+
+    } catch (err) {
+      console.error('File upload to IPFS failed:', err);
+      setError(err instanceof Error ? err.message : 'IPFS upload failed');
+      setProgress(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveToBlockchain = async () => {
+    if (!fileData) return;
+
+    if (!instance) {
+      setError('FHE instance not available. Please refresh the page.');
+      return;
+    }
+
+    if (!isConnected) {
+      try {
+        setProgress({ stage: 'storing', progress: 10 });
+        await connectContract();
+      } catch (err) {
+        setError('Failed to connect to contract. Please make sure you have MetaMask installed and connected to Sepolia testnet.');
+        setProgress(null);
+        return;
+      }
+    }
+
+    try {
+      setSavingToBlockchain(true);
+      setError(null);
+
+      setProgress({ stage: 'storing', progress: 30 });
+
       // 上传到合约
-      const fileId = await uploadFile(ipfsHashNumber, aesPassword);
+      const fileId = await uploadFile(fileData.ipfsHashNumber, fileData.aesPassword);
       console.log('Stored in contract, fileId:', fileId);
 
-      setProgress({ stage: 'storing', progress: 90 });
+      setProgress({ stage: 'storing', progress: 80 });
 
       // 保存文件元数据到本地存储
       const fileMetadata = {
-        filename: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        encryptedData,
-        ipfsHash,
-        aesPassword,
+        filename: fileData.file.name,
+        fileType: fileData.file.type,
+        fileSize: fileData.file.size,
+        encryptedData: fileData.encryptedData,
+        ipfsHash: fileData.ipfsHash,
+        aesPassword: fileData.aesPassword,
         uploadTime: Date.now(),
       };
 
@@ -100,18 +149,37 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
 
       setTimeout(() => {
         setProgress(null);
+        setFileData(null);
         if (onUploadComplete) {
           onUploadComplete(fileId);
         }
       }, 1000);
 
     } catch (err) {
-      console.error('File upload failed:', err);
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      console.error('Blockchain storage failed:', err);
+      let errorMessage = 'Blockchain storage failed';
+
+      if (err instanceof Error) {
+        if (err.message.includes('Contract not connected')) {
+          errorMessage = 'Please connect your wallet and make sure you are on Sepolia testnet';
+        } else if (err.message.includes('User rejected')) {
+          errorMessage = 'Transaction was rejected by user';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
       setProgress(null);
     } finally {
-      setUploading(false);
+      setSavingToBlockchain(false);
     }
+  };
+
+  const resetUpload = () => {
+    setFileData(null);
+    setError(null);
+    setProgress(null);
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -202,10 +270,10 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        onClick={!uploading ? openFileDialog : undefined}
-        style={{ 
-          cursor: uploading ? 'not-allowed' : 'pointer',
-          opacity: uploading ? 0.6 : 1,
+        onClick={!uploading && !fileData ? openFileDialog : undefined}
+        style={{
+          cursor: uploading || fileData ? 'not-allowed' : 'pointer',
+          opacity: uploading || fileData ? 0.6 : 1,
         }}
       >
         <input
@@ -214,14 +282,22 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
           className="file-input"
           onChange={handleInputChange}
           accept="image/*,.pdf,.txt"
-          disabled={uploading}
+          disabled={uploading || !!fileData}
         />
-        
+
         {uploading ? (
           <div>
             <div>⏳ Processing...</div>
             <div style={{ fontSize: '14px', color: '#999', marginTop: '10px' }}>
-              Please wait while your file is being encrypted and uploaded
+              Please wait while your file is being encrypted and uploaded to IPFS
+            </div>
+          </div>
+        ) : fileData ? (
+          <div>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>✅</div>
+            <div>File uploaded to IPFS successfully!</div>
+            <div style={{ fontSize: '14px', color: '#999', marginTop: '10px' }}>
+              Ready to save to blockchain
             </div>
           </div>
         ) : (
@@ -234,6 +310,66 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
           </div>
         )}
       </div>
+
+      {fileData && (
+        <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #444', borderRadius: '8px', backgroundColor: '#2a2a2a' }}>
+          <h4 style={{ margin: '0 0 15px 0', color: '#fff' }}>📋 Upload Details</h4>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>File:</strong> {fileData.file.name} ({(fileData.file.size / 1024 / 1024).toFixed(2)} MB)
+          </div>
+          <div style={{ marginBottom: '15px', wordBreak: 'break-all' }}>
+            <strong>IPFS Hash:</strong>
+            <div style={{
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              color: '#4CAF50',
+              marginTop: '5px',
+              padding: '8px',
+              backgroundColor: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '4px'
+            }}>
+              {fileData.ipfsHash}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={saveToBlockchain}
+              disabled={savingToBlockchain}
+              style={{
+                flex: 1,
+                backgroundColor: savingToBlockchain ? '#666' : '#28a745',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '6px',
+                fontSize: '16px',
+                cursor: savingToBlockchain ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.3s ease',
+              }}
+            >
+              {savingToBlockchain ? '⏳ Saving to Blockchain...' : '🔗 Save to Blockchain'}
+            </button>
+            <button
+              onClick={resetUpload}
+              disabled={savingToBlockchain}
+              style={{
+                backgroundColor: '#6c757d',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '6px',
+                fontSize: '16px',
+                cursor: savingToBlockchain ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.3s ease',
+              }}
+            >
+              🔄 Upload New File
+            </button>
+          </div>
+        </div>
+      )}
       
       <div style={{ marginTop: '15px', fontSize: '14px', color: '#888' }}>
         <strong>🔒 Privacy Notice:</strong>

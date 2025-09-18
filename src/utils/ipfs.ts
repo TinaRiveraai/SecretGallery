@@ -3,10 +3,31 @@ export class FakeIPFS {
 
   // Mock IPFS上传 - 生成假的IPFS hash并存储数据
   static async uploadToIPFS(encryptedData: string): Promise<string> {
-    // 生成假的IPFS hash
-    const timestamp = Date.now().toString();
-    const randomSuffix = Math.random().toString(36).substring(2, 15);
-    const fakeHash = `Qm${timestamp}${randomSuffix}`.substring(0, 46);
+    // 生成符合IPFS格式的假hash (Qm开头，46个字符，base58编码)
+    const base58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+    // 创建一个简单的hash函数
+    const createHash = (input: string): string => {
+      let hash = 0;
+      for (let i = 0; i < input.length; i++) {
+        const char = input.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 转换为32位整数
+      }
+      return Math.abs(hash).toString();
+    };
+
+    // 使用数据内容、时间戳和随机数生成hash
+    const seed = createHash(encryptedData + Date.now() + Math.random());
+
+    // 生成44位base58字符串
+    let fakeHash = 'Qm';
+    const seedNum = parseInt(seed);
+
+    for (let i = 0; i < 44; i++) {
+      const index = (seedNum + i * 7) % base58chars.length;
+      fakeHash += base58chars[index];
+    }
 
     // 存储到内存中模拟IPFS存储
     this.storage.set(fakeHash, encryptedData);
@@ -59,7 +80,7 @@ export class FakeIPFS {
   }
 
   static isValidIPFSHash(hash: string): boolean {
-    return /^Qm[1-9A-HJ-NP-Za-km-z]{44,46}$/.test(hash);
+    return /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(hash);
   }
 
   // 清理存储（用于测试）

@@ -3,8 +3,8 @@ import { sepolia } from 'viem/chains';
 import { SECRET_GALLERY_ABI } from './SecretGalleryABI';
 import type { FHEInstance } from './index';
 
-// 合约地址（需要部署后更新）
-const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000' as const; // TODO: 更新为实际部署地址
+// 合约地址（已部署在Sepolia测试网）
+const CONTRACT_ADDRESS = '0x0abd7c0266b5Dd044A9888F93530b1680fBeda0E' as const;
 
 export class ViemContractService {
   private publicClient: any;
