@@ -18,6 +18,7 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
   const [error, setError] = useState<string | null>(null);
   const [decryptingFiles, setDecryptingFiles] = useState<Set<number>>(new Set());
   const [decryptedPreviews, setDecryptedPreviews] = useState<Map<number, string>>(new Map());
+  const [decryptedData, setDecryptedData] = useState<Map<number, {ipfsHash: string, aesPassword: string}>>(new Map());
 
   // 使用wagmi检查钱包连接状态
   const { isConnected: walletConnected, address: walletAddress } = useAccount();
@@ -71,7 +72,9 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
     // 签名
     const signature = await signer.signTypedData(
       eip712.domain,
-      eip712.types,
+      {
+        UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification,
+      },
       eip712.message
     );
 
@@ -121,6 +124,13 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
       const fileIds = await contract.getOwnerFiles(userAddress);
       console.log('User file IDs:', fileIds);
 
+      // 如果没有文件ID，直接返回空数组
+      if (fileIds.length === 0) {
+        console.log('No files found for user');
+        setFiles([]);
+        return;
+      }
+
       // 转换文件ID为EncryptedFile对象
       const filePromises = fileIds.map(async (fileId: any) => {
         try {
@@ -129,22 +139,17 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
           // 获取文件元数据
           const [owner, timestamp] = await contract.getFileMetadata(id);
 
-          // 从本地存储获取缓存的元数据（如果有）
-          const cachedMetaStr = localStorage.getItem(`file_meta_${fileId}`);
-          const cachedMeta = cachedMetaStr ? JSON.parse(cachedMetaStr) : null;
-
           const encryptedFile: EncryptedFile = {
             id: fileId,
-            encryptedData: cachedMeta?.encryptedData || '',
-            ipfsHash: cachedMeta?.ipfsHash || '',
-            aesPassword: cachedMeta?.aesPassword || '',
+            encryptedData: '',
+            ipfsHash: '',
+            aesPassword: '',
             owner: owner,
             timestamp: Number(timestamp.toString()) * 1000, // 转换为毫秒
-            filename: cachedMeta?.filename || `File ${fileId}`,
-            fileType: cachedMeta?.fileType || 'application/octet-stream',
-            fileSize: cachedMeta?.fileSize || 0,
+            filename: `File ${fileId}`,
+            fileType: 'application/octet-stream',
+            fileSize: 0,
           };
-
           return encryptedFile;
         } catch (err) {
           console.error(`Failed to load file ${fileId}:`, err);
@@ -176,27 +181,20 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
     try {
       let ipfsHash, aesPassword;
 
-      // 如果本地有缓存，直接使用
-      if (file.ipfsHash && file.aesPassword) {
-        ipfsHash = file.ipfsHash;
-        aesPassword = file.aesPassword;
-      } else {
-        // 从合约获取加密的文件数据
-        const fileData = await getFileData(file.id);
-        ipfsHash = FileEncryption.numberToHash(BigInt(fileData.ipfsHash));
-        aesPassword = fileData.aesPassword;
-      }
+      // 从合约获取加密的文件数据并解密
+      console.log('Getting encrypted file data from contract...');
+      const fileData = await getFileData(file.id);
+      ipfsHash = FileEncryption.numberToHash(BigInt(fileData.ipfsHash));
+      aesPassword = fileData.aesPassword;
 
-      // 从伪IPFS下载加密数据
-      const encryptedData = await FakeIPFS.downloadFromIPFS(ipfsHash);
+      console.log('Decrypted IPFS hash:', ipfsHash);
+      console.log('Decrypted AES password:', aesPassword);
 
-      // 解密文件数据
-      const decryptedBase64 = FileEncryption.decryptFile(encryptedData, aesPassword);
-
-      // 为图片创建预览URL
-      if (file.fileType.startsWith('image/')) {
-        setDecryptedPreviews(prev => new Map(prev).set(file.id, decryptedBase64));
-      }
+      // 保存解密后的数据
+      setDecryptedData(prev => new Map(prev).set(file.id, {
+        ipfsHash,
+        aesPassword
+      }));
     } catch (err) {
       console.error('Failed to decrypt file:', err);
       alert('Failed to decrypt file: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -331,16 +329,14 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
                   <div style={{ fontSize: '48px', marginBottom: '10px' }}>
                     {getFileIcon(file.fileType)}
                   </div>
-                  {file.fileType.startsWith('image/') && (
-                    <button 
-                      className="button button-secondary"
-                      onClick={() => decryptAndPreview(file)}
-                      disabled={decryptingFiles.has(file.id)}
-                      style={{ fontSize: '12px', padding: '6px 12px' }}
-                    >
-                      {decryptingFiles.has(file.id) ? 'Decrypting...' : 'Preview'}
-                    </button>
-                  )}
+                  <button
+                    className="button button-secondary"
+                    onClick={() => decryptAndPreview(file)}
+                    disabled={decryptingFiles.has(file.id)}
+                    style={{ fontSize: '12px', padding: '6px 12px' }}
+                  >
+                    {decryptingFiles.has(file.id) ? 'Decrypting...' : '解密'}
+                  </button>
                 </div>
               )}
             </div>
@@ -354,6 +350,16 @@ export function FileGallery({ onFileSelect, refreshTrigger, fheInstance }: FileG
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>
                 File #{file.id} • {file.fileType}
+              </div>
+
+              {/* 显示加密的IPFS哈希和密码 */}
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>IPFS Hash:</strong> {decryptedData.has(file.id) ? decryptedData.get(file.id)?.ipfsHash : '********************************'}
+                </div>
+                <div>
+                  <strong>Password:</strong> {decryptedData.has(file.id) ? decryptedData.get(file.id)?.aesPassword : '********************************'}
+                </div>
               </div>
             </div>
             

@@ -135,18 +135,7 @@ export function FileUpload({ onUploadComplete, fheInstance }: FileUploadProps) {
 
       setProgress({ stage: 'storing', progress: 80 });
 
-      // 保存文件元数据到本地存储
-      const fileMetadata = {
-        filename: fileData.file.name,
-        fileType: fileData.file.type,
-        fileSize: fileData.file.size,
-        encryptedData: fileData.encryptedData,
-        ipfsHash: fileData.ipfsHash,
-        aesPassword: fileData.aesPassword,
-        uploadTime: Date.now(),
-      };
-
-      localStorage.setItem(`file_meta_${fileId}`, JSON.stringify(fileMetadata));
+      // 不再保存到localStorage
 
       setProgress({ stage: 'completed', progress: 100 });
 

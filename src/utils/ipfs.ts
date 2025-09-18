@@ -40,14 +40,20 @@ export class FakeIPFS {
     return fakeHash;
   }
 
-  // Mock IPFS下载 - 从存储中获取数据
+  // Mock IPFS下载 - 从存储中获取数据或返回假数据
   static async downloadFromIPFS(hash: string): Promise<string> {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 50));
 
     const data = this.storage.get(hash);
     if (!data) {
-      throw new Error(`Mock IPFS: File not found for hash ${hash}`);
+      // 如果找不到文件，返回假的加密数据而不是抛出错误
+      console.log(`Mock IPFS: File not found for hash ${hash}, returning fake data`);
+
+      // 生成假的加密数据（简单的base64编码文本）
+      const fakeContent = `This is fake encrypted data for hash ${hash}`;
+      const fakeEncryptedData = btoa(fakeContent);
+      return fakeEncryptedData;
     }
 
     console.log(`Mock IPFS download: ${hash}`);
