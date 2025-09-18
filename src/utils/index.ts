@@ -39,4 +39,4 @@ export interface FHEInstance {
 export { FakeIPFS } from './ipfs';
 export { CryptoUtils } from './crypto';
 export { CryptoUtils as FileEncryption } from './crypto'; // 兼容性别名
-export { ViemContractService } from './viemContract';
+export { EthersContractService } from './viemContract';

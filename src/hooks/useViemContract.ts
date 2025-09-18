@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { ViemContractService } from '../utils/viemContract';
+import { EthersContractService } from '../utils/viemContract';
 import type { FHEInstance } from '../utils';
 
 export function useViemContract(fheInstance: FHEInstance | null) {
-  const [contractService, setContractService] = useState<ViemContractService | null>(null);
+  const [contractService, setContractService] = useState<EthersContractService | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +14,7 @@ export function useViemContract(fheInstance: FHEInstance | null) {
 
   useEffect(() => {
     if (fheInstance && !contractService) {
-      const service = new ViemContractService(fheInstance);
+      const service = new EthersContractService(fheInstance);
       setContractService(service);
     }
   }, [fheInstance, contractService]);
