@@ -163,7 +163,10 @@ function App() {
 
       <main>
         {activeTab === 'upload' && (
-          <FileUpload onUploadComplete={handleUploadComplete} />
+          <FileUpload
+            onUploadComplete={handleUploadComplete}
+            fheInstance={instance}
+          />
         )}
         
         {activeTab === 'gallery' && (

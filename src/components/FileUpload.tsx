@@ -6,6 +6,7 @@ import type { UploadProgress } from '../utils';
 
 interface FileUploadProps {
   onUploadComplete?: (fileId: number) => void;
+  fheInstance?: any; // FHE实例从父组件传入
 }
 
 interface FileData {
@@ -16,7 +17,7 @@ interface FileData {
   ipfsHashNumber: bigint;
 }
 
-export function FileUpload({ onUploadComplete }: FileUploadProps) {
+export function FileUpload({ onUploadComplete, fheInstance }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -24,8 +25,10 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileData, setFileData] = useState<FileData | null>(null);
-  
-  const { instance } = useFHE();
+
+  // 使用传入的FHE实例，如果没有则使用hook
+  const { instance: hookInstance } = useFHE();
+  const instance = fheInstance || hookInstance;
   const { uploadFile, isConnected, connectContract } = useViemContract(instance);
 
   const handleFileSelect = (files: FileList) => {
