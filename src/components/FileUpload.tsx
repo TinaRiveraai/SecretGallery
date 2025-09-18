@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { CryptoUtils } from '../utils/crypto';
 import { IPFSUtils } from '../utils/ipfs';
 import { useSecretGallery } from '../hooks/useSecretGallery';
-import type { UploadProgress } from '../types';
+import type { UploadProgress } from '../utils';
 
 interface FileUploadProps {
   onUploadComplete?: (fileId: number) => void;

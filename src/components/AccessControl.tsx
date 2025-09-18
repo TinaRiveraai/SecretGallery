@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSecretGallery } from '../hooks/useSecretGallery';
-import type { EncryptedFile } from '../types';
+import type { EncryptedFile } from '../utils';
 
 interface AccessControlProps {
   file: EncryptedFile;

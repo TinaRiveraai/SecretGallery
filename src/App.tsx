@@ -3,7 +3,7 @@ import { FileUpload } from './components/FileUpload';
 import { FileGallery } from './components/FileGallery';
 import { AccessControl } from './components/AccessControl';
 import { useFHE } from './hooks/useFHE';
-import type { EncryptedFile } from './types';
+import type { EncryptedFile } from './utils';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'gallery'>('gallery');

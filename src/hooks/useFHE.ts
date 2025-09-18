@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FHEInstance } from '../types';
+import type { FHEInstance } from '../utils';
 
 export function useFHE() {
   const [instance, setInstance] = useState<FHEInstance | null>(null);

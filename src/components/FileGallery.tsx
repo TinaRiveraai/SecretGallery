@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CryptoUtils } from '../utils/crypto';
 import { IPFSUtils } from '../utils/ipfs';
 import { useSecretGallery } from '../hooks/useSecretGallery';
-import type { EncryptedFile, FileMetadata } from '../types';
+import type { EncryptedFile, FileMetadata } from '../utils';
 
 interface FileGalleryProps {
   onFileSelect?: (file: EncryptedFile) => void;

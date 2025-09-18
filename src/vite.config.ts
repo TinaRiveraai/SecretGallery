@@ -13,6 +13,7 @@ export default defineConfig({
     global: 'globalThis',
   },
   optimizeDeps: {
-    include: ['@zama-fhe/relayer-sdk', 'crypto-js'],
+    exclude: ['@zama-fhe/relayer-sdk'],
+    include: ['crypto-js'],
   },
 })
